@@ -1,0 +1,16 @@
+services:
+  agent-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: agent-server
+    container_name: agent-server-container
+    ports:
+      - "8989:8989"
+    volumes:
+      - .:/app
+    restart: unless-stopped
+
+    # Uncomment the following lines if you need to debug or see logs directly
+    # tty: true
+    # stdin_open: true
