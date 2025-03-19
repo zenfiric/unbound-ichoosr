@@ -14,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import StreamingResponse
 
-from igent import get_agent, get_history
+from igent import get_agents, get_history
 
 # Load environment variables
 load_dotenv(override=True)
@@ -69,7 +69,7 @@ async def history() -> list[dict[str, Any]]:
 async def ask(prompt: TextMessage) -> StreamingResponse:
     """Endpoint to handle user prompts and stream agent output."""
     try:
-        agent = await get_agent(state_path=state_path, system_message=system_message)
+        agent = await get_agents(state_path=state_path, system_message=system_message)
         response = await agent.on_messages(
             messages=[prompt], cancellation_token=CancellationToken()
         )
