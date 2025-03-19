@@ -372,5 +372,7 @@ $RECYCLE.BIN/
 .python-version
 .vscode/
 docker/data/*
+data/*
+multi/*
 
 # End of https://www.toptal.com/developers/gitignore/api/python,visualstudiocode,macos,linux,windows,dotenv,venv,pycharm+all
