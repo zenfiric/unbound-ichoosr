@@ -22,12 +22,17 @@ async def read_csv(file_path: str) -> list[dict]:
     """Read a CSV file and return its contents as a list of dictionaries."""
     df = pd.read_csv(file_path, dtype=str)
     numeric_columns = [
-        "Proposal_OptimalAmountOfPanels", "Product_AmountOfPanels", 
-        "Product_EstimatedRoofSizeFt", "Product_HomeSize", 
-        "Product_NumberOfStories", "Contact_Zip"
+        "Proposal_OptimalAmountOfPanels",
+        "Product_AmountOfPanels",
+        "Product_EstimatedRoofSizeFt",
+        "Product_HomeSize",
+        "Product_NumberOfStories",
+        "Contact_Zip",
     ]
     for col in df.columns:
-        if col in numeric_columns or col.lower().endswith(("size", "amount", "number", "zip")):
+        if col in numeric_columns or col.lower().endswith(
+            ("size", "amount", "number", "zip")
+        ):
             df[col] = pd.to_numeric(df[col], errors="coerce")
     return df.to_dict(orient="records")
 
@@ -38,14 +43,17 @@ read_csv_tool = FunctionTool(
 )
 
 
-async def save_json(file_path: str, data: list[dict]) -> str:
-    """Saves a list of dictionaries to a JSON file."""
+async def save_json(data: str, file_path: str = "result.json") -> str:
+    """Saves a stringified list of dictionaries to a JSON file."""
+    print("Saving data to", file_path)
+    # Parse the stringified JSON data back to Python object
+    json_data = json.loads(data)
     async with aiofiles.open(file_path, "w") as file:
-        await file.write(json.dumps(data, indent=2))
+        await file.write(json.dumps(json_data, indent=2))
     return f"Successfully saved data to {file_path}"
 
 
 save_json_tool = FunctionTool(
     save_json,
-    description="Saves a list of dictionaries to a JSON file.",
+    description="Saves a stringified list of dictionaries to a JSON file.",
 )

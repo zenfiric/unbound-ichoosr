@@ -21,4 +21,4 @@ TBD
 
 {distribution_rules}
 
-IMPORTANT: Send ONLY short bulleted instructions back to <matching_expert>, unless you are satisfied with the result, then send APPROVE and JSON result.
+IMPORTANT: Send ONLY short bulleted instructions back to <matching_expert>, unless you are satisfied with the result, then save JSON result to test.json and send APPROVE.
