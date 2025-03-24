@@ -1,0 +1,8 @@
+<general_context>
+Generally, the process of matching the registration to suppliers and the eligible subsidies looks like this:
+- Step 1: Match the registration to the correct supplier based on <matching_rules>
+- Step 2: Validate the output of the matching expert based on <matching_rules>
+- Step 3: Enrich the matching output with the right product price and select the eligible subsidies that apply for this registration based on the <subsidy_rules>.
+- Step 4: Validate the output of the subsidy and price expert based on the <subsidy_rules>.
+- Step 5: Generate the final JSON based on the validated matching outcome.
+</general_context>

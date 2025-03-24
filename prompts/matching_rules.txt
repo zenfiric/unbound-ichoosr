@@ -1,0 +1,26 @@
+<matching_rules>
+Matching registrations to suppliers is a straightforward process.
+The aim is to ensure that a registration is matched to a supplier who has available capacity to fulfil the requirements of the registration, and who also services the same zip code as the registrant.
+An important point here is that suppliers have a maximum capacity.
+If the supplier capacity within the registrant’s ZIP code is met, then the registration should be matched with the next nearest supplier who has capacity to fulfil the requirements of the registration.
+The nearest supplier is defined by the zip code of the supplier and the registration address.
+
+When doing the matching, make sure to adhere to these matching rules:
+- Registration addre﻿ss falls within the supplier's﻿ service area.
+- The matched supplier has available capacity, as defined in the <capacity_database>.
+- Registrations are distributed proportionally within overlapping suppliers' service areas; based on capacity and defined <distribution_rules>.
+- The assigned supplier offers the produc﻿t the registration needs (e.g. SP & BT).
+
+Make sure to always output findings in JSON format as defined below.
+Output should only be in this JSON format:
+```json
+  [{
+  "registration_id": <registration_id>,
+  "campaign_id": <campaign_id>,
+  "supplier_id": <supplier_id>,
+  "panel_name": <panel_name>,
+  "panel_capacity": <panel_capacity>,
+  "battery_name": <battery_name>,
+  "battery_capacity": <battery_capacity>,
+  },]
+```
