@@ -8,6 +8,7 @@ from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.conditions import TextMentionTermination, MaxMessageTermination
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_core.models import ChatCompletionClient
+from autogen_ext.models.openai import OpenAIChatCompletionClient
 from dotenv import load_dotenv
 
 from igent.tools import read_json_tool, read_csv_tool
@@ -72,10 +73,10 @@ Your task is to validate the output data of the <role_matching_expert>, guarante
 Follow these steps to validate the matching:
 1. Parse the JSON output from the matcher and check each match against the <matching_rules>.
 2. Verify ZIP code alignment, product needs, supplier capacity, and proportional distribution per <distribution_rules>.
-3a. If all matches are correct and distribution is proportional, save the JSON to '../data/demo/matched_output.json', then respond with 'APPROVE' to terminate.
-3b. If any match is incorrect or distribution is uneven, provide detailed feedback to the <role_matching_expert> explaining what’s wrong and how to fix it. Do not approve until all criteria are met.
+3a. If all matches are correct and distribution is proportional, save the validated JSON to '../data/demo/matched_output.json' as the final step, then respond with 'APPROVE' to terminate. Include the JSON in your response for confirmation.
+3b. If any match is incorrect or distribution is uneven, provide detailed feedback to the <role_matching_expert> explaining what’s wrong and how to fix it. Do not approve or save until all criteria are met.
 
-Output your feedback clearly, referencing specific registration IDs or supplier issues. If approving, confirm the file save and restate the validated JSON.
+Output your feedback clearly, referencing specific registration IDs or supplier issues. When approving, confirm the file has been saved and restate the validated JSON before saying 'APPROVE'.
 </role_matching_critic>
 <matching_rules>
 Matching registrations to suppliers is a straightforward process. The aim is to ensure that a registration is matched to a supplier who has available capacity to fulfil the requirements of the registration, and who also services the same zip code as the registrant. An important point here is that suppliers have a maximum capacity. If the supplier capacity within the registrant’s zip code is met, then the registration should be matched with the next nearest supplier who has capacity to fulfil the requirements of the registration. The nearest supplier is defined by the zip code of the supplier and the registration address. When doing the matching, make sure to adhere to these matching rules:
@@ -96,7 +97,12 @@ Despite fewer absolute registrations, Supplier A has a higher relative percentag
 </distribution_rules>
 """
 
-async def get_agents(state_path: str) -> RoundRobinGroupChat:
+async def save_json_to_file(data: list[dict], file_path: str) -> None:
+    """Helper function to save JSON data to a file."""
+    async with aiofiles.open(file_path, "w") as file:
+        await file.write(json.dumps(data, indent=2))
+
+async def get_agents(state_path: str, matcher_prompt:str=None, critic_prompt:str=None) -> RoundRobinGroupChat:
     """Get the assistant agent, load state from file."""
     async with aiofiles.open(state_path, "r") as file:
         content = await file.read()
@@ -104,26 +110,40 @@ async def get_agents(state_path: str) -> RoundRobinGroupChat:
         model_config = yaml.safe_load(content)
     model_client = ChatCompletionClient.load_component(model_config)
 
+    matcher_prompt = general_context + matcher_role if not matcher_prompt else matcher_prompt
     # Create the matcher agent with tools
     matcher = AssistantAgent(
         name="matcher",
         model_client=model_client,
-        system_message=general_context + matcher_role,
+        system_message=matcher_prompt,
         tools=[read_json_tool, read_csv_tool],
         model_client_stream=False,
     )
 
-    # Create the critic agent with tools
+    # Custom critic with file-saving capability
+    async def critic_handler(message: str, agent: AssistantAgent) -> str:
+        if "APPROVE" in message:
+            # Extract JSON from the message (assuming it’s included before APPROVE)
+            try:
+                json_start = message.index("```json") + 7
+                json_end = message.index("```", json_start)
+                json_str = message[json_start:json_end].strip()
+                json_data = json.loads(json_str)
+                await save_json_to_file(json_data, "../data/demo/matched_output.json")
+            except (ValueError, json.JSONDecodeError) as e:
+                return f"Error saving JSON: {e}. Please ensure valid JSON is provided before 'APPROVE'."
+        return message
+    critic_prompt = general_context + critic_role if not critic_prompt else critic_prompt
     critic = AssistantAgent(
         name="critic",
         model_client=model_client,
-        system_message=general_context + critic_role,
+        system_message=critic_prompt,
         tools=[read_json_tool, read_csv_tool],
         model_client_stream=False,
     )
 
     # Termination conditions: APPROVE or max 5 rounds (10 messages)
-    termination = TextMentionTermination("APPROVE", sources=["critic"]) |  MaxMessageTermination(max_messages=10)
+    termination = (TextMentionTermination("APPROVE", sources=["critic"]) | MaxMessageTermination(max_messages=10))
 
     # Chain the agents
     group_chat = RoundRobinGroupChat(

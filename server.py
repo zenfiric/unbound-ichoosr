@@ -69,7 +69,7 @@ async def history() -> list[dict[str, Any]]:
 async def ask(prompt: TextMessage) -> StreamingResponse:
     """Endpoint to handle user prompts and stream agent output."""
     try:
-        agent = await get_agents(state_path=state_path, system_message=system_message)
+        agent = await get_agents(state_path=state_path)
         response = await agent.on_messages(
             messages=[prompt], cancellation_token=CancellationToken()
         )
