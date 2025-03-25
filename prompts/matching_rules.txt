@@ -16,7 +16,7 @@ Output should only be in this JSON format:
 ```json
   [{
   "registration_id": <registration_id>,
-  "campaign_id": <campaign_id>,
+  "campaignname": <campaignname>,
   "supplier_id": <supplier_id>,
   "panel_name": <panel_name>,
   "panel_capacity": <panel_capacity>,
