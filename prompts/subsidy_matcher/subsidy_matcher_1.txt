@@ -15,7 +15,7 @@ The expected output is to enrich the JSON received by the matching expert and sh
 ```json
   [{
   "registration_id": <registration_id>,
-  "campaign_id": <campaign_id>,
+  "campaignname": <campaignname>,
   "supplier_id": <supplier_id>,
   "panel_name": <panel_name>,
   "panel_capacity": <panel_capacity>,
