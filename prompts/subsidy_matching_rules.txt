@@ -1,35 +1,14 @@
 <subsidy_matching_rules> 
-The goal is to ensure that a registration is matched to all eligible subsidies, rebates, and incentives in the registration's area. 
-The matching is done based on the registration's zip code and it can be eligible for multiple subsidies, rebates, and incentives simultaneously.
+The goal is to ensure that a registration is matched to all eligible incentives in the registration's area. 
+The matching is done based on the registration's zip code and it can be eligible for multiple incentives simultaneously.
 
-Follow this rule set when matching registrations to subsidies, rebates, and incentives.
+Follow this rule set when matching registrations and incentives:
  
 + Take into account LMI and Non-LMI (Low to Medium Income) registrations to verify if a registration qualifies for LMI incentives. 
 If the registration is eligible for these incentives it will be indicated in the registration as true or false.
-++ The registration can be eligible for multiple subsidies. 
-Always include all the subsidies, rebates, and incentives that the registration is eligible for. 
+++ The registration can be eligible for multiple incentives. 
+Always include all the incentives that the registration is eligible for. 
 ++ Check if the registrations are still within the start and end dates of the incentives, to ensure if they are still valid or not. 
 If the end date has passed, the incentive is no longer valid and therefore should not be listed.
  - If there is no end date to the incentive, this will mean that the incentive is still valid.
 </subsidy_matching_rules>
-
-The expected output is to enrich the JSON received by the matching expert and should look like the example below:
-```json
-  [{
-  "registration_id": <registration_id>,
-  "campaign_id": <campaign_id>,
-  "supplier_id": <supplier_id>,
-  "panel_name": <panel_name>,
-  "panel_capacity": <panel_capacity>,
-  "battery_name": <battery_name>,
-  "battery_capacity": <battery_capacity>,
-  "panel_capacity": <product_capacity>,
-  "num_panels": <num_panels>,
-  "num_batteries": <num_batteries>,
-  "product_type": <product_type>,
-  "product_price_pannels": <product_price_pannels>,
-  "product_price_batteries": <product_price_batteries>,
-  "eligible_{subsidies,grants}": <eligible_{subsidies,grants}>,
-  "payment_type" <payment_type>,
-  },] 
-```
