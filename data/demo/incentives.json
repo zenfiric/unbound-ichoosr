@@ -1,0 +1,38 @@
+[
+  {
+    "Incentive name": "Federal Tax Credit",
+    "Applicable community": "ALL",
+    "Incentive source": "Federal Government",
+    "LMI": "FALSE",
+    "Incentive specs": "30% over the total cost of the installation",
+    "Start date": "1 jan 2024",
+    "End date": "No end date"
+  },
+  {
+    "Incentive name": "Minneapolis Green Cost share",
+    "Applicable community": "Minneapolis",
+    "Incentive source": "State Government",
+    "LMI": "TRUE",
+    "Incentive specs": "40¢ per kiloWatt hour produced (Watt installed * roof efficiency implications * 0,40)",
+    "Start date": "1 June 2024",
+    "End date": "1-3-25"
+  },
+  {
+    "Incentive name": "Excel Solar Rewards",
+    "Applicable community": "ALL",
+    "Incentive source": "Utility Provider",
+    "LMI": "TRUE",
+    "Incentive specs": "$2.75 per Watt insatlled",
+    "Start date": "1 june 2025",
+    "End date": null
+  },
+  {
+    "Incentive name": "Minneapolis Green Cost share",
+    "Applicable community": "Minneapolis",
+    "Incentive source": "State Government",
+    "LMI": "FALSE",
+    "Incentive specs": "20¢ per kiloWatt hour produced (Watt installed * roof efficiency implications * 0,40)",
+    "Start date": "1 May 2002",
+    "End date": "No end date"
+  }
+]
