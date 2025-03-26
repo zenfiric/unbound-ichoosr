@@ -19,4 +19,4 @@ Follow these steps in order to validate the matching:
 
 {distribution_rules}
 
-IMPORTANT: Send ONLY short bulleted instructions back to <matching_expert>, unless you are satisfied with the result, then save JSON result to test.json and send APPROVE.
+IMPORTANT: Send ONLY short bulleted instructions back to <matching_expert>, unless you are satisfied with the result, then save JSON result and send APPROVE.
