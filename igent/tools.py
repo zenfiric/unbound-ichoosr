@@ -43,17 +43,48 @@ read_csv_tool = FunctionTool(
 )
 
 
-async def save_json(data: str, file_path: str = "result.json") -> str:
-    """Saves a stringified list of dictionaries to a JSON file."""
-    print("Saving data to", file_path)
-    # Parse the stringified JSON data back to Python object
-    json_data = json.loads(data)
+async def save_json(data: str | list[dict], file_path: str = "output.json") -> str:
+    """Saves data to a JSON file, creating the file if it doesn't exist."""
+    # Convert string data to list if needed
+    if isinstance(data, str):
+        try:
+            data = json.loads(data)
+        except json.JSONDecodeError:
+            raise ValueError("Invalid JSON string provided")
+
+    if not isinstance(data, list):
+        raise ValueError("Data must be a list of dictionaries")
+
+    try:
+        # Try to read existing data
+        async with aiofiles.open(file_path, "r") as file:
+            existing_data = json.loads(await file.read())
+            if not isinstance(existing_data, list):
+                existing_data = []
+    except FileNotFoundError:
+        # If file doesn't exist, start with empty list
+        existing_data = []
+
+    # Create dictionary of existing entries
+    data_dict = {
+        entry["registration_id"]: entry
+        for entry in existing_data
+        if isinstance(entry, dict) and "registration_id" in entry
+    }
+
+    # Update with new data
+    for entry in data:
+        if isinstance(entry, dict) and "registration_id" in entry:
+            data_dict[entry["registration_id"]] = entry
+
+    # Write updated data
     async with aiofiles.open(file_path, "w") as file:
-        await file.write(json.dumps(json_data, indent=2))
+        await file.write(json.dumps(list(data_dict.values()), indent=2))
+
     return f"Successfully saved data to {file_path}"
 
 
 save_json_tool = FunctionTool(
     save_json,
-    description="Saves a stringified list of dictionaries to a JSON file.",
+    description="Updates a JSON file with a new list of dictionaries, replacing entries with the same registration_id.",
 )

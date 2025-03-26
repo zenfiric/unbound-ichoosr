@@ -24,7 +24,17 @@ async def save_json_to_file(data: list[dict], file_path: str) -> None:
 async def get_agents(
     state_path: str, matcher_prompt: str = None, critic_prompt: str = None
 ) -> RoundRobinGroupChat:
-    """Get the assistant agent, load state from file."""
+    """Initialize and configure a group chat with matcher and critic agents.
+
+    Args:
+        state_path (str): Path to the YAML configuration file containing model settings.
+        matcher_prompt (str, optional): System message for the matcher agent. Defaults to None.
+        critic_prompt (str, optional): System message for the critic agent. Defaults to None.
+
+    Returns:
+        RoundRobinGroupChat: A configured group chat instance with matcher and critic agents,
+            set up with termination conditions (APPROVE from critic or max 10 messages).
+    """
     async with aiofiles.open(state_path, "r") as file:
         content = await file.read()
         content = os.path.expandvars(content)
