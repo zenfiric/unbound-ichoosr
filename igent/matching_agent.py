@@ -15,14 +15,8 @@ from igent.tools import read_csv_tool, read_json_tool, save_json_tool
 load_dotenv(override=True)
 
 
-async def save_json_to_file(data: list[dict], file_path: str) -> None:
-    """Helper function to save JSON data to a file."""
-    async with aiofiles.open(file_path, "w") as file:
-        await file.write(json.dumps(data, indent=2))
-
-
 async def get_agents(
-    state_path: str, matcher_prompt: str = None, critic_prompt: str = None
+    config_path: str, matcher_prompt: str = None, critic_prompt: str = None
 ) -> RoundRobinGroupChat:
     """Initialize and configure a group chat with matcher and critic agents.
 
@@ -32,10 +26,10 @@ async def get_agents(
         critic_prompt (str, optional): System message for the critic agent. Defaults to None.
 
     Returns:
-        RoundRobinGroupChat: A configured group chat instance with matcher and critic agents,
-            set up with termination conditions (APPROVE from critic or max 10 messages).
+        RoundRobinGroupChat: A group chat with matcher and critic agents,
+            with termination conditions (APPROVE from critic | max 10 messages).
     """
-    async with aiofiles.open(state_path, "r") as file:
+    async with aiofiles.open(config_path, "r") as file:
         content = await file.read()
         content = os.path.expandvars(content)
         model_config = yaml.safe_load(content)
@@ -47,6 +41,7 @@ async def get_agents(
         system_message=matcher_prompt,
         tools=[read_json_tool, read_csv_tool],
         model_client_stream=False,
+        reflect_on_tool_use=True,
     )
 
     critic = AssistantAgent(
@@ -55,6 +50,7 @@ async def get_agents(
         system_message=critic_prompt,
         tools=[read_json_tool, read_csv_tool, save_json_tool],
         model_client_stream=False,
+        reflect_on_tool_use=True,
     )
 
     # Termination conditions: APPROVE or max 5 rounds (10 messages)

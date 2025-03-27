@@ -1,4 +1,6 @@
 import json
+import os
+from pathlib import Path
 
 import aiofiles
 import pandas as pd
@@ -44,47 +46,51 @@ read_csv_tool = FunctionTool(
 
 
 async def save_json(data: str | list[dict], file_path: str = "output.json") -> str:
-    """Saves data to a JSON file, creating the file if it doesn't exist."""
-    # Convert string data to list if needed
+    print(f"save_json called with file_path: {file_path}, data type: {type(data)}")
     if isinstance(data, str):
         try:
             data = json.loads(data)
+            print("Converted string to list:", data)
         except json.JSONDecodeError:
+            print("JSON decode error")
             raise ValueError("Invalid JSON string provided")
 
     if not isinstance(data, list):
+        print("Data is not a list")
         raise ValueError("Data must be a list of dictionaries")
 
+    abs_path = os.path.abspath(file_path)
+    print(f"Absolute path: {abs_path}")
+    Path(abs_path).parent.mkdir(parents=True, exist_ok=True)
+
     try:
-        # Try to read existing data
-        async with aiofiles.open(file_path, "r") as file:
+        async with aiofiles.open(abs_path, "r") as file:
             existing_data = json.loads(await file.read())
             if not isinstance(existing_data, list):
                 existing_data = []
-    except FileNotFoundError:
-        # If file doesn't exist, start with empty list
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"Read error: {e}")
         existing_data = []
 
-    # Create dictionary of existing entries
     data_dict = {
         entry["registration_id"]: entry
         for entry in existing_data
         if isinstance(entry, dict) and "registration_id" in entry
     }
-
-    # Update with new data
     for entry in data:
         if isinstance(entry, dict) and "registration_id" in entry:
             data_dict[entry["registration_id"]] = entry
 
-    # Write updated data
-    async with aiofiles.open(file_path, "w") as file:
+    async with aiofiles.open(abs_path, "w") as file:
         await file.write(json.dumps(list(data_dict.values()), indent=2))
+        print(f"File written to {abs_path}")
 
-    return f"Successfully saved data to {file_path}"
+    result = f"Successfully saved data to {file_path}"
+    print(f"Returning: {result}")
+    return result
 
 
 save_json_tool = FunctionTool(
     save_json,
-    description="Updates a JSON file with a new list of dictionaries, replacing entries with the same registration_id.",
+    description="Updates a JSON file with a new list of dictionaries, replacing entries with the same registration_id. Creates file and directories if they don't exist.",
 )
