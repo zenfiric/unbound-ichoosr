@@ -1,23 +1,5 @@
 [
   {
-    "RegistrationNumber": "SPUS61341",
-    "CampaignName": "Minnesota 1 Summer 2024",
-    "RegistrationStatus": "Undecided",
-    "Contact_Zip": "55406",
-    "Contact_state": "MN",
-    "Product_RoofPitch": "Inclined",
-    "Product_RoofOrientation": "West",
-    "Product_KnowsAmountOfPanels": "0",
-    "Product_AmountOfPanels": null,
-    "Product_CanEstimateRoofSurface": "1",
-    "Product_EstimatedRoofSizeFt": 350,
-    "Product_HomeSize": "Between1600And2200Ft",
-    "Proposal_OptimalAmountOfPanels": 21,
-    "Contact_LowMediumIncome": 0,
-    "Contact_Utility": "Xcel",
-    "Product_NumberOfStories": 1
-  },
-  {
     "RegistrationNumber": "SPUS46885",
     "CampaignName": "Minnesota 1 Summer 2024",
     "RegistrationStatus": "Undecided",
