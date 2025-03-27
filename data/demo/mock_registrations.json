@@ -13,7 +13,7 @@
     "Product_EstimatedRoofSizeFt": null,
     "Product_HomeSize": "Between2200And2800Ft",
     "Proposal_OptimalAmountOfPanels": 17,
-    "Contact_LowMediumIncome": 0,
+    "Contact_LowMediumIncome": 1,
     "Contact_Utility": "Xcel",
     "Product_NumberOfStories": 2,
     "Proposal_OptimalAmountOfBatteries": "0"
@@ -32,7 +32,7 @@
     "Product_EstimatedRoofSizeFt": null,
     "Product_HomeSize": "LargerThan2800Ft",
     "Proposal_OptimalAmountOfPanels": 31,
-    "Contact_LowMediumIncome": 0,
+    "Contact_LowMediumIncome": 1,
     "Contact_Utility": "Xcel",
     "Product_NumberOfStories": 2,
     "Proposal_OptimalAmountOfBatteries": "0"
@@ -51,7 +51,7 @@
     "Product_EstimatedRoofSizeFt": 1200,
     "Product_HomeSize": "Between1600And2200Ft",
     "Proposal_OptimalAmountOfPanels": 16,
-    "Contact_LowMediumIncome": 0,
+    "Contact_LowMediumIncome": 1,
     "Contact_Utility": "Xcel",
     "Product_NumberOfStories": 2,
     "Proposal_OptimalAmountOfBatteries": "0"
@@ -70,7 +70,7 @@
     "Product_EstimatedRoofSizeFt": null,
     "Product_HomeSize": null,
     "Proposal_OptimalAmountOfPanels": 10,
-    "Contact_LowMediumIncome": 0,
+    "Contact_LowMediumIncome": 1,
     "Contact_Utility": "Xcel",
     "Product_NumberOfStories": 2,
     "Proposal_OptimalAmountOfBatteries": "0"
