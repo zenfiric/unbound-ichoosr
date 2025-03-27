@@ -188,3 +188,95 @@ pop_json_tool = FunctionTool(
     pop_json,
     description="Pops the first element from a JSON list in source_file, saves the rest back, and stores the popped element to popped_file using save_json.",
 )
+
+
+async def update_supplier_capacity(
+    match_data: str | dict | list[dict], offers_file: str = "offers.json"
+) -> str:
+    """Increments the 'Used' field by 1 for a supplier in the offers file based on match data.
+
+    Args:
+        match_data: A JSON string, single match dictionary, or list of match dictionaries with supplier_id.
+        offers_file: Path to the supplier offers JSON file (default: 'offers.json').
+
+    Returns:
+        Success message with the file path.
+
+    Raises:
+        ValueError: If match_data format is invalid or supplier_id is not found.
+    """
+    # Handle string input by parsing JSON
+    if isinstance(match_data, str):
+        try:
+            match_data = json.loads(match_data)
+        except json.JSONDecodeError:
+            raise ValueError("Invalid JSON string provided for match_data")
+
+    # Normalize input to a list
+    if isinstance(match_data, dict):
+        match_data = [match_data]
+    if not isinstance(match_data, list) or not all(
+        isinstance(d, dict) for d in match_data
+    ):
+        raise ValueError("match_data must be a dictionary or list of dictionaries")
+
+    # Load the offers file
+    abs_offers_path = os.path.abspath(offers_file)
+    Path(abs_offers_path).parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        async with aiofiles.open(abs_offers_path, "r") as file:
+            offers_data = json.loads(await file.read())
+    except (FileNotFoundError, json.JSONDecodeError):
+        raise ValueError(f"Could not read or parse offers file at {offers_file}")
+
+    if not isinstance(offers_data, dict) or "SupplierOffers" not in offers_data:
+        raise ValueError("Offers file must contain a 'SupplierOffers' key with a list")
+
+    # Process each match
+    supplier_offers = offers_data["SupplierOffers"]
+    updated = False
+
+    for match in match_data:
+        supplier_id = match.get("supplier_id")
+
+        if not supplier_id:
+            raise ValueError(f"Match missing supplier_id: {match}")
+
+        # Find the supplier
+        supplier_found = False
+        for supplier in supplier_offers:
+            if supplier.get("SupplierID") == supplier_id:
+                supplier_found = True
+                current_used = supplier.get("Used", 0)
+                capacity = supplier.get("Capacity", 0)
+
+                # Increment Used by 1
+                new_used = current_used + 1
+                if new_used > capacity:
+                    raise ValueError(
+                        f"Supplier {supplier_id} capacity exceeded: {new_used} > {capacity}"
+                    )
+
+                supplier["Used"] = new_used
+                updated = True
+                break
+
+        if not supplier_found:
+            raise ValueError(f"SupplierID {supplier_id} not found in offers")
+
+    if not updated:
+        return f"No updates made to {offers_file}"
+
+    # Write the updated offers back
+    async with aiofiles.open(abs_offers_path, "w") as file:
+        await file.write(json.dumps(offers_data, indent=2))
+
+    return f"Successfully updated supplier capacity in {offers_file}"
+
+
+# Example usage as a tool
+update_supplier_capacity_tool = FunctionTool(
+    update_supplier_capacity,
+    description="Increments the 'Used' field for a supplier in the offers file based on match data.",
+)
