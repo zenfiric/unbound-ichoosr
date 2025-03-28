@@ -1,4 +1,4 @@
-<pricing_rules> 
+<pricing_rules>
 The goal is to ensure that all datapoints that affect the pricing of the items on the registration are acounted for and included in the JSON.
 
 + When determining the correct product price, you need to:
@@ -6,5 +6,5 @@ The goal is to ensure that all datapoints that affect the pricing of the items o
  - Look for the number of batteries and/or number of panels that are found in the registration data and always use these numbers when determining the price.
  - Look for the correct payment type from the registration data and retrieve the right product price based on this.
  - Based on the matched supplier, payment type, number of batteries and/or number of panels, return the correct product price(s).
- 
+
  </pricing_rules>
