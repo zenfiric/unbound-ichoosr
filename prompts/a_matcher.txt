@@ -18,7 +18,7 @@ Return only this JSON format (do not save it yourself—the critic will handle s
 	  "panel_name": "<panel_name>",
       "num_panels": "<panel_quantity>",
 	  "panel_capacity": "<panel_capacity>",
-	  "battery_name": null,
-	  "battery_capacity": null
+	  "battery_name": <battery_name>,
+	  "battery_capacity": <battery_capacity>
 	}]
 	```
