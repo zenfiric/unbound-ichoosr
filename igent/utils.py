@@ -59,21 +59,37 @@ async def process_pair(
 
     print(f"Running {pair_name} for registration {registration_id}")
     success = False
+    critic_output = ""
+
     async for msg in run_with_backoff(
         pair, [TextMessage(content=message, source="user")]
     ):
         if isinstance(msg, TextMessage):
             prefix = f"{msg.source}: {msg.content[:100] if msg.source == 'user' else msg.content}"
             print(prefix)
+            if msg.source == "critic":
+                critic_output += msg.content
         elif isinstance(msg, TaskResult):
             result = f"{pair_name} completed."
             if msg.stop_reason:
                 result += f" Stop reason: {msg.stop_reason}"
-                success = "APPROVE" in msg.stop_reason
+                success = "APPROVE" in msg.stop_reason or "APPROVE" in critic_output
             print(result)
 
-    await asyncio.sleep(0.1)
-    if success and not Path(output_file).exists():
-        print(f"Error: '{output_file}' was not saved.")
+    await asyncio.sleep(0.5)
+
+    # Verify outputs
+    if success:
+        if not Path(output_file).exists():
+            print(f"Error: '{output_file}' was not saved after approval.")
+            return False
+        if "Successfully updated supplier capacity" not in critic_output:
+            print(f"Error: 'offers.json' was not updated for {pair_name}.")
+            return False
+        print(
+            f"{pair_name} approved and saved output to {output_file}. 'offers.json' updated."
+        )
+        return True
+    else:
+        print(f"{pair_name} did not approve registration {registration_id}.")
         return False
-    return success
