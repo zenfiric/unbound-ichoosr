@@ -24,10 +24,10 @@ async def read_txt(file_path: str) -> str:
         async with aiofiles.open(file_path, "r", encoding="utf-8") as file:
             content = await file.read()
         return content
-    except FileNotFoundError:
-        raise FileNotFoundError(f"File not found: {file_path}")
-    except IOError as e:
-        raise IOError(f"Error reading file {file_path}: {str(e)}")
+    except FileNotFoundError as fnf_err:
+        raise FileNotFoundError(f"File not found: {file_path}") from fnf_err
+    except IOError as io_err:
+        raise IOError(f"Error reading file {file_path}") from io_err
 
 
 read_txt_tool = FunctionTool(
@@ -79,13 +79,10 @@ async def save_json(data: str | list[dict], file_path: str = "output.json") -> s
     if isinstance(data, str):
         try:
             data = json.loads(data)
-            print("Converted string to list:", data)
-        except json.JSONDecodeError:
-            print("JSON decode error")
-            raise ValueError("Invalid JSON string provided")
+        except json.JSONDecodeError as json_err:
+            raise ValueError("Invalid JSON string provided") from json_err
 
     if not isinstance(data, list):
-        print("Data is not a list")
         raise ValueError("Data must be a list of dictionaries")
 
     abs_path = os.path.abspath(file_path)
@@ -97,7 +94,6 @@ async def save_json(data: str | list[dict], file_path: str = "output.json") -> s
             existing_data = json.loads(await file.read())
             if not isinstance(existing_data, list):
                 existing_data = []
-        print(f"Existing data: {existing_data}")
     except (FileNotFoundError, json.JSONDecodeError) as e:
         print(f"Read error: {e}")
         existing_data = []
@@ -116,10 +112,6 @@ async def save_json(data: str | list[dict], file_path: str = "output.json") -> s
             if key:
                 data_dict[key] = entry
             else:
-                # If neither key exists, append directly to avoid losing data
-                print(
-                    f"Warning: Entry missing both 'RegistrationNumber' and 'registration_id': {entry}"
-                )
                 existing_data.append(entry)
 
     # Combine deduplicated data with entries lacking keys
@@ -127,10 +119,8 @@ async def save_json(data: str | list[dict], file_path: str = "output.json") -> s
 
     async with aiofiles.open(abs_path, "w") as file:
         await file.write(json.dumps(final_data, indent=2))
-        print(f"File written to {abs_path} with data: {final_data}")
 
     result = f"Successfully saved data to {file_path}"
-    print(f"Returning: {result}")
     return result
 
 
@@ -155,30 +145,23 @@ async def pop_json(source_file: str, popped_file: str) -> dict:
         FileNotFoundError: If source_file doesn't exist.
         ValueError: If source_file is empty or not a list.
     """
-    # Read the source JSON file
     try:
         async with aiofiles.open(source_file, "r", encoding="utf-8") as file:
             data = json.loads(await file.read())
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Source file not found: {source_file}")
-    except json.JSONDecodeError:
-        raise ValueError(f"Invalid JSON in source file: {source_file}")
+    except FileNotFoundError as fnf_err:
+        raise FileNotFoundError(f"Source file not found: {source_file}") from fnf_err
+    except json.JSONDecodeError as json_err:
+        raise ValueError(f"Invalid JSON in source file: {source_file}") from json_err
 
-    # Validate data
     if not isinstance(data, list):
         raise ValueError(f"Source file {source_file} must contain a list")
     if not data:
         raise ValueError(f"Source file {source_file} is empty")
 
-    # Pop the first element
     popped_element = data.pop(0)
-
-    # Save the remaining list back to source_file
     async with aiofiles.open(source_file, "w", encoding="utf-8") as file:
         await file.write(json.dumps(data, indent=2))
 
-    # Save the popped element to popped_file using save_json
-    # Wrap in a list since save_json expects a list of dicts
     await save_json([popped_element], popped_file)
 
     return popped_element
@@ -193,7 +176,7 @@ pop_json_tool = FunctionTool(
 async def update_supplier_capacity(
     match_data: str | dict | list[dict], offers_file: str = "offers.json"
 ) -> str:
-    """Increments the 'Used' field by 1 for a supplier in the offers file based on match data.
+    """Increments the 'Used' field by 1 for a supplier in the offers file based on match data and updates 'UsedPct'.
 
     Args:
         match_data: A JSON string, single match dictionary, or list of match dictionaries with supplier_id.
@@ -209,10 +192,11 @@ async def update_supplier_capacity(
     if isinstance(match_data, str):
         try:
             match_data = json.loads(match_data)
-        except json.JSONDecodeError:
-            raise ValueError("Invalid JSON string provided for match_data")
+        except json.JSONDecodeError as json_err:
+            raise ValueError(
+                "Invalid JSON string provided for match_data"
+            ) from json_err
 
-    # Normalize input to a list
     if isinstance(match_data, dict):
         match_data = [match_data]
     if not isinstance(match_data, list) or not all(
@@ -220,7 +204,6 @@ async def update_supplier_capacity(
     ):
         raise ValueError("match_data must be a dictionary or list of dictionaries")
 
-    # Load the offers file
     abs_offers_path = os.path.abspath(offers_file)
     Path(abs_offers_path).parent.mkdir(parents=True, exist_ok=True)
 
@@ -233,7 +216,6 @@ async def update_supplier_capacity(
     if not isinstance(offers_data, dict) or "SupplierOffers" not in offers_data:
         raise ValueError("Offers file must contain a 'SupplierOffers' key with a list")
 
-    # Process each match
     supplier_offers = offers_data["SupplierOffers"]
     updated = False
 
@@ -243,7 +225,6 @@ async def update_supplier_capacity(
         if not supplier_id:
             raise ValueError(f"Match missing supplier_id: {match}")
 
-        # Find the supplier
         supplier_found = False
         for supplier in supplier_offers:
             if supplier.get("SupplierID") == supplier_id:
@@ -259,6 +240,9 @@ async def update_supplier_capacity(
                     )
 
                 supplier["Used"] = new_used
+                supplier["UsedPct"] = (
+                    round(new_used / capacity, 2) if capacity > 0 else 0
+                )
                 updated = True
                 break
 
@@ -272,11 +256,11 @@ async def update_supplier_capacity(
     async with aiofiles.open(abs_offers_path, "w") as file:
         await file.write(json.dumps(offers_data, indent=2))
 
-    return f"Successfully updated supplier capacity in {offers_file}"
+    return f"Successfully updated supplier capacity and UsedPct in {offers_file}"
 
 
-# Example usage as a tool
+# Update the tool
 update_supplier_capacity_tool = FunctionTool(
     update_supplier_capacity,
-    description="Increments the 'Used' field for a supplier in the offers file based on match data.",
+    description="Increments the 'Used' field for a supplier in the offers file based on match data and updates 'UsedPct' as a percentage.",
 )

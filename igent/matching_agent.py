@@ -10,7 +10,12 @@ from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_core.models import ChatCompletionClient
 from dotenv import load_dotenv
 
-from igent.tools import read_csv_tool, read_json_tool, save_json_tool
+from igent.tools import (
+    read_csv_tool,
+    read_json_tool,
+    save_json_tool,
+    update_supplier_capacity_tool,
+)
 
 load_dotenv(override=True)
 
@@ -48,7 +53,12 @@ async def get_agents(
         name="critic",
         model_client=model_client,
         system_message=critic_prompt,
-        tools=[read_json_tool, read_csv_tool, save_json_tool],
+        tools=[
+            read_json_tool,
+            read_csv_tool,
+            save_json_tool,
+            update_supplier_capacity_tool,
+        ],
         model_client_stream=False,
         reflect_on_tool_use=True,
     )
