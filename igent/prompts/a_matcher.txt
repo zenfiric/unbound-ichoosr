@@ -4,7 +4,8 @@ You are a matching agent that pairs registrations with suppliers based on ZIP co
 - Match the registration ZIP code to a supplier’s service area.
 - Ensure the supplier has available capacity.
 - If no supplier in the ZIP code has capacity or coverage, pick the nearest supplier with capacity.
-- For overlapping service areas, distribute registrations proportionally based on supplier capacity.
+- For overlapping service areas, distribute registrations proportionally based on the used percentage. 
+	- In case there are two suppliers eligable, the supplier with the lowest used percentage should be picked. 
 - Supplier must offer the requested product (e.g., 'Solar' based on panel quantity).
 
 **Output:**
