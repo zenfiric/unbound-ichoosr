@@ -176,7 +176,7 @@ pop_json_tool = FunctionTool(
 async def update_supplier_capacity(
     match_data: str | dict | list[dict], offers_file: str = "offers.json"
 ) -> str:
-    """Increments the 'Used' field by 1 for a supplier in the offers file based on match data and updates 'UsedPct'.
+    """Increments the 'Used' field by 1 for the supplier in the latest match and updates 'UsedPct'.
 
     Args:
         match_data: A JSON string, single match dictionary, or list of match dictionaries with supplier_id.
@@ -219,36 +219,34 @@ async def update_supplier_capacity(
     supplier_offers = offers_data["SupplierOffers"]
     updated = False
 
-    for match in match_data:
-        supplier_id = match.get("supplier_id")
+    # Process only the latest match (last entry in the list, since save_json appends)
+    match = match_data[-1]  # Take the most recent match
+    supplier_id = match.get("supplier_id")
 
-        if not supplier_id:
-            raise ValueError(f"Match missing supplier_id: {match}")
+    if not supplier_id:
+        raise ValueError(f"Match missing supplier_id: {match}")
 
-        supplier_found = False
-        for supplier in supplier_offers:
-            if supplier.get("SupplierID") == supplier_id:
-                supplier_found = True
-                current_used = supplier.get("Used", 0)
-                capacity = supplier.get("Capacity", 0)
+    supplier_found = False
+    for supplier in supplier_offers:
+        if supplier.get("SupplierID") == supplier_id:
+            supplier_found = True
+            current_used = supplier.get("Used", 0)
+            capacity = supplier.get("Capacity", 0)
 
-                # Increment Used by 1
-                new_used = current_used + 1
-                if new_used > capacity:
-                    raise ValueError(
-                        f"Supplier {supplier_id} capacity exceeded: {new_used} > {capacity}"
-                    )
-
-                supplier["Used"] = new_used
-                supplier["UsedPct"] = (
-                    round(new_used / capacity, 2) if capacity > 0 else 0
+            # Increment Used by 1 for this supplier only
+            new_used = current_used + 1
+            if new_used > capacity:
+                raise ValueError(
+                    f"Supplier {supplier_id} capacity exceeded: {new_used} > {capacity}"
                 )
-                updated = True
-                break
 
-        if not supplier_found:
-            raise ValueError(f"SupplierID {supplier_id} not found in offers")
+            supplier["Used"] = new_used
+            supplier["UsedPct"] = round(new_used / capacity, 2) if capacity > 0 else 0
+            updated = True
+            break
 
+    if not supplier_found:
+        raise ValueError(f"SupplierID {supplier_id} not found in offers")
     if not updated:
         return f"No updates made to {offers_file}"
 
@@ -259,8 +257,7 @@ async def update_supplier_capacity(
     return f"Successfully updated supplier capacity and UsedPct in {offers_file}"
 
 
-# Update the tool
 update_supplier_capacity_tool = FunctionTool(
     update_supplier_capacity,
-    description="Increments the 'Used' field for a supplier in the offers file based on match data and updates 'UsedPct' as a percentage.",
+    description="Increments the 'Used' field by 1 for the supplier in the latest match and updates 'UsedPct' as a percentage.",
 )

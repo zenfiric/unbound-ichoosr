@@ -55,7 +55,7 @@ async def process_pair(
         print(
             f"Warning: Message for {pair_name} exceeds {TOKEN_LIMIT} tokens. Truncating..."
         )
-        message = truncate_message(message, TOKEN_LIMIT - 1000)  # Leave buffer
+        message = truncate_message(message, TOKEN_LIMIT - 1000)
 
     print(f"Running {pair_name} for registration {registration_id}")
     success = False
@@ -69,6 +69,7 @@ async def process_pair(
             print(prefix)
             if msg.source == "critic":
                 critic_output += msg.content
+                print(f"Full critic output: {msg.content}")
         elif isinstance(msg, TaskResult):
             result = f"{pair_name} completed."
             if msg.stop_reason:
@@ -76,19 +77,22 @@ async def process_pair(
                 success = "APPROVE" in msg.stop_reason or "APPROVE" in critic_output
             print(result)
 
-    await asyncio.sleep(0.5)
-
-    # Verify outputs
+    await asyncio.sleep(1.0)  # Increase to 1 second for file I/O
     if success:
         if not Path(output_file).exists():
             print(f"Error: '{output_file}' was not saved after approval.")
             return False
-        if "Successfully updated supplier capacity" not in critic_output:
-            print(f"Error: 'offers.json' was not updated for {pair_name}.")
+        try:
+            with open(output_file, "r") as f:
+                content = f.read()
+                if not content.strip():
+                    print(f"Error: '{output_file}' is empty despite approval.")
+                    return False
+                print(f"{output_file} content after save: {content}")
+        except Exception as e:
+            print(f"Error reading '{output_file}': {e}")
             return False
-        print(
-            f"{pair_name} approved and saved output to {output_file}. 'offers.json' updated."
-        )
+        print(f"{pair_name} approved and saved output to {output_file}.")
         return True
     else:
         print(f"{pair_name} did not approve registration {registration_id}.")

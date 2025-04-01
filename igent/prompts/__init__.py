@@ -6,7 +6,7 @@ from igent.tools import read_txt
 PROMPTS_DIR = Path(__file__).parent
 
 
-async def load_prompts():
+async def load_prompts(biz_line: str) -> dict[str, str]:
     """
     Asynchronously load prompt files from the prompts directory.
 
@@ -14,10 +14,18 @@ async def load_prompts():
         dict: A dictionary mapping prompt names to their contents.
     """
     return {
-        "a_matcher": await read_txt(str(PROMPTS_DIR / "a_matcher.txt")),
-        "a_critic": await read_txt(str(PROMPTS_DIR / "a_critic.txt")),
-        "b_matcher": await read_txt(str(PROMPTS_DIR / "b_matcher.txt")),
-        "b_critic": await read_txt(str(PROMPTS_DIR / "b_critic.txt")),
+        "a_matcher": await read_txt(
+            str(PROMPTS_DIR / biz_line / f"{biz_line}_a_matcher.txt")
+        ),
+        "a_critic": await read_txt(
+            str(PROMPTS_DIR / biz_line / f"{biz_line}_a_critic.txt")
+        ),
+        "b_matcher": await read_txt(
+            str(PROMPTS_DIR / biz_line / f"{biz_line}_b_matcher.txt")
+        ),
+        "b_critic": await read_txt(
+            str(PROMPTS_DIR / biz_line / f"{biz_line}_b_critic.txt")
+        ),
     }
 
 

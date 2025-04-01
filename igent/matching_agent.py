@@ -10,12 +10,7 @@ from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_core.models import ChatCompletionClient
 from dotenv import load_dotenv
 
-from igent.tools import (
-    read_csv_tool,
-    read_json_tool,
-    save_json_tool,
-    update_supplier_capacity_tool,
-)
+from igent.tools import read_csv_tool, read_json_tool, save_json_tool
 
 load_dotenv(override=True)
 
@@ -23,17 +18,7 @@ load_dotenv(override=True)
 async def get_agents(
     config_path: str, matcher_prompt: str = None, critic_prompt: str = None
 ) -> RoundRobinGroupChat:
-    """Initialize and configure a group chat with matcher and critic agents.
-
-    Args:
-        state_path (str): Path to the YAML configuration file containing model settings.
-        matcher_prompt (str, optional): System message for the matcher agent. Defaults to None.
-        critic_prompt (str, optional): System message for the critic agent. Defaults to None.
-
-    Returns:
-        RoundRobinGroupChat: A group chat with matcher and critic agents,
-            with termination conditions (APPROVE from critic | max 10 messages).
-    """
+    """Initialize and configure a group chat with matcher and critic agents."""
     async with aiofiles.open(config_path, "r") as file:
         content = await file.read()
         content = os.path.expandvars(content)
@@ -53,12 +38,7 @@ async def get_agents(
         name="critic",
         model_client=model_client,
         system_message=critic_prompt,
-        tools=[
-            read_json_tool,
-            read_csv_tool,
-            save_json_tool,
-            update_supplier_capacity_tool,
-        ],
+        tools=[read_json_tool, read_csv_tool, save_json_tool],
         model_client_stream=False,
         reflect_on_tool_use=True,
     )
