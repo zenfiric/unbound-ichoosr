@@ -1,10 +1,41 @@
 import json
 import os
 from pathlib import Path
+from typing import Literal
 
 import aiofiles
 import pandas as pd
+import requests
 from autogen_core.tools import FunctionTool
+
+
+def fetch_incentives(
+    zip_code: str = "55401",
+    owner_status: Literal["homeowner", "renter"] = "homeowner",
+    household_income: int | str = 100000,
+    household_size: int | str = 2,
+) -> str:
+    url = "https://api.rewiringamerica.org/api/v1/calculator"
+    api_key = os.getenv("REWIRING_AMERICA_API_KEY")
+
+    if not api_key:
+        raise ValueError("REWIRING_AMERICA_API_KEY environment variable not set")
+
+    headers = {"Authorization": f"Bearer {api_key}"}
+    params = {
+        "zip": zip_code,
+        "owner_status": owner_status,
+        "household_income": household_income,
+        "household_size": household_size,
+    }
+    response = requests.get(url, headers=headers, params=params, timeout=15)
+    return response.text
+
+
+fetch_incentives_tool = FunctionTool(
+    fetch_incentives,
+    description="Fetches incentive programs from Rewiring America API for the specified zip code.",
+)
 
 
 async def read_txt(file_path: str) -> str:
@@ -261,3 +292,15 @@ update_supplier_capacity_tool = FunctionTool(
     update_supplier_capacity,
     description="Increments the 'Used' field by 1 for the supplier in the latest match and updates 'UsedPct' as a percentage.",
 )
+
+
+def incentives():
+    import requests
+
+    url = "https://api.rewiringamerica.org/api/v1/incentives/programs?language=en"
+
+    headers = {"Authorization": "Bearer YOUR_KEY_HERE"}
+
+    response = requests.get(url, headers=headers)
+
+    print(response.text)

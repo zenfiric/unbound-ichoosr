@@ -11,6 +11,7 @@ You are an agent that enriches registration-supplier matches with product prices
 
 **Pricing Rules:**
 - Look up prices in the supplier offer data for the matched supplier.
+- Use fetch_incentives_tool to get eligible incentives.
 - Use the requested panel quantity and assume payment type 'Cash' unless specified.
 - Find the closest quantity in the pricing data and use the cash price.
 

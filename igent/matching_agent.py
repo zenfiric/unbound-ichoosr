@@ -10,7 +10,12 @@ from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_core.models import ChatCompletionClient
 from dotenv import load_dotenv
 
-from igent.tools import read_csv_tool, read_json_tool, save_json_tool
+from igent.tools import (
+    fetch_incentives_tool,
+    read_csv_tool,
+    read_json_tool,
+    save_json_tool,
+)
 
 load_dotenv(override=True)
 
@@ -29,7 +34,7 @@ async def get_agents(
         name="matcher",
         model_client=model_client,
         system_message=matcher_prompt,
-        tools=[read_json_tool, read_csv_tool],
+        tools=[read_json_tool, read_csv_tool, fetch_incentives_tool],
         model_client_stream=False,
         reflect_on_tool_use=True,
     )
