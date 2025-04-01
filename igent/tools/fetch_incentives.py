@@ -1,3 +1,10 @@
+"""
+Fetch Incentives
+This tool fetches incentive programs from the Rewiring America API for the specified zip code.
+
+Source: https://api.rewiringamerica.org/docs/routes#find-eligible-incentives
+"""
+
 import os
 from typing import Literal
 
