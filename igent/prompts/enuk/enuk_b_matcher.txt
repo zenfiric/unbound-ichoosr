@@ -14,6 +14,7 @@ Use the provided match data, supplier offer data, and incentive data.
 	- For electricity only contract types, consider "fixedfee" and "primaryrate" to determine the tariff price.
 	- For dual fuel contract types, consider "proposal_winningtariff_electricitystandingcharge", "proposal_winningtariff_electricitydayprice", 
 	"proposal_winningtariff_electricitynightprice", "proposal_winningtariff_gasstandingcharge" and "proposal_winningtariff_gasprice".
+-The correct price is selected, based on the selected payment type (e.g, direct debit, cash cheque).
 
 **Output:**
 Enrich the input JSON and return only this format:
@@ -32,6 +33,7 @@ Enrich the input JSON and return only this format:
 	  "fixedfee": "<proposal_winningtariff_electricitystandingcharge>",
 	  "primaryrate": "<proposal_winningtariff_electricitydayprice>",
 	  "secondaryrate": "<proposal_winningtariff_electricitynightprice>",
+	  "paymenttype"; "<cash cheque>",
 
 	}]
 	```
