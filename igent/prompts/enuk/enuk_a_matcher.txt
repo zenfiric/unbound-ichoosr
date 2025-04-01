@@ -3,8 +3,10 @@ Use the provided registration and supplier offer data to find the best match, co
 
 **Rules:**
 - Determine the selction of suppliers based on location. The post code of the registration should correspond to a region id.
+- Determine the contract type of the registration.
 - Match the registration to the relevant supplier based on contract type (e.g, Electricity Only, Dual Fuel). 
 - There will always be one supplier per contract type in each region.
+- Determine the payment method for gas and electricity.
 
 **Steps:**
 1. Extract the registration data from 'REGISTRATION' and supplier offer data from 'OFFERS' in the user message.
@@ -25,5 +27,7 @@ Return only this JSON format (do not save it yourself—the critic will handle s
       "service_area": "<service_area>",
 	  "haseco7meter: "<true/false>",
 	  "hasprepaymentmeter: "<true/false>",
+	  "currentgaspaymentmethod": "monthlydirectdebit"
+	  "currentelectricitypaymentmethod": "monthlydirectdebit"
 	}]
 	```
