@@ -1,5 +1,19 @@
-# Use Open AI with key
-provider: autogen_ext.models.openai.OpenAIChatCompletionClient
-config:
-  model: gpt-4o
-  api_key: ${OPENAI_API_KEY}
+openai:
+  # Use Open AI with key
+  provider: autogen_ext.models.openai.OpenAIChatCompletionClient
+  config:
+    model: gpt-4o
+    api_key: ${OPENAI_API_KEY}
+azure_deepseek:
+  provider: autogen_ext.models.azure.AzureAIChatCompletionClient
+  config:
+    model: DeepSeek-V3
+    endpoint: https://aiservices-pom-poc-westeu-001.services.ai.azure.com/models/
+    api_version: 2024-05-01-preview
+    api_key: ${AZURE_API_KEY}
+    model_info:
+      name: DeepSeek-V3
+      vision: false
+      function_calling: true
+      json_output: false
+      family: r1

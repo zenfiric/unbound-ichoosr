@@ -3,13 +3,12 @@ import os
 from typing import Any
 
 import aiofiles
-import yaml
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
 from autogen_agentchat.teams import RoundRobinGroupChat
-from autogen_core.models import ChatCompletionClient
 from dotenv import load_dotenv
 
+from igent.models import get_model_client
 from igent.tools import (
     fetch_incentives_tool,
     read_csv_tool,
@@ -21,15 +20,10 @@ load_dotenv(override=True)
 
 
 async def get_agents(
-    config_path: str, matcher_prompt: str = None, critic_prompt: str = None
+    model: str, matcher_prompt: str = None, critic_prompt: str = None
 ) -> RoundRobinGroupChat:
     """Initialize and configure a group chat with matcher and critic agents."""
-    async with aiofiles.open(config_path, "r") as file:
-        content = await file.read()
-        content = os.path.expandvars(content)
-        model_config = yaml.safe_load(content)
-    model_client = ChatCompletionClient.load_component(model_config)
-
+    model_client = await get_model_client(model)
     matcher = AssistantAgent(
         name="matcher",
         model_client=model_client,
