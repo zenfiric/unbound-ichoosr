@@ -18,6 +18,18 @@ def fetch_incentives(
     household_income: int | str = 100000,
     household_size: int | str = 2,
 ) -> str:
+    """
+    Fetches incentive programs from Rewiring America API for the specified zip code.
+
+    Args:
+        zip_code: Zip code to fetch incentives for. Defaults to "55401".
+        owner_status: Homeowner or renter status. Defaults to "homeowner".
+        household_income: Household income. Defaults to 100000.
+        household_size: Household size. Defaults to 2.
+
+    Returns:
+        JSON string containing the incentives
+    """
     url = "https://api.rewiringamerica.org/api/v1/calculator"
     api_key = os.getenv("REWIRING_AMERICA_API_KEY")
 
