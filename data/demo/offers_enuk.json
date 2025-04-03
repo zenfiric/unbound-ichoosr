@@ -558,5 +558,63 @@
                 }
             ]
         }
-    ]
+    ],
+"ServiceAreas": [
+    {
+        "ServiceAreaID": 10,
+        "Service Area": "Eastern"
+    },
+    {
+        "ServiceAreaID": 11,
+        "Service Area": "East Midlands"
+    },
+    {
+        "ServiceAreaID": 12,
+        "Service Area": "London"
+    },
+    {
+        "ServiceAreaID": 13,
+        "Service Area": "Manweb"
+    },
+    {
+        "ServiceAreaID": 14,
+        "Service Area": "Midlands"
+    },
+    {
+        "ServiceAreaID": 15,
+        "Service Area": "Northern"
+    },
+    {
+        "ServiceAreaID": 16,
+        "Service Area": "Norweb"
+    },
+    {
+        "ServiceAreaID": 17,
+        "Service Area": "Scottish Hydro"
+    },
+    {
+        "ServiceAreaID": 18,
+        "Service Area": "ScottishPower"
+    },
+    {
+        "ServiceAreaID": 19,
+        "Service Area": "SEEBOARD"
+    },
+    {
+        "ServiceAreaID": 20,
+        "Service Area": "Southern"
+    },
+    {
+        "ServiceAreaID": 21,
+        "Service Area": "SWALEC"
+    },
+    {
+        "ServiceAreaID": 22,
+        "Service Area": "SWEB"
+    },
+    {
+        "ServiceAreaID": 23,
+        "Service Area": "Yorkshire"
+    }
+]
 }
