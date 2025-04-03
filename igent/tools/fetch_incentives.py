@@ -15,7 +15,7 @@ from autogen_core.tools import FunctionTool
 def fetch_incentives(
     zip_code: str = "55401",
     owner_status: Literal["homeowner", "renter"] = "homeowner",
-    household_income: int | str = 100000,
+    household_income: int | str = 30000,
     household_size: int | str = 2,
 ) -> str:
     """

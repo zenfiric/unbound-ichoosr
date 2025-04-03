@@ -41,7 +41,7 @@ async def run_workflow(
     offers_file: str = "offers.json",
     incentives_file: str | None = None,
     matches_file: str = "matches.json",
-    pos_file: str = "final_matches.json",
+    pos_file: str = "pos.json",
 ):
     prompts = await load_prompts(business_line)
     registrations = await read_json(registrations_file)
@@ -59,7 +59,7 @@ async def run_workflow(
     incentives = await read_json(incentives_file) if incentives_file else None
 
     for i, registration in enumerate(registrations[:max_items], 1):
-        registration_id = registration.get("registration_id", "unknown")
+        registration_id = registration.get("RegistrationNumber", "unknown")
         logger.info(
             "Processing registration %s/%s (ID: %s)", i, max_items, registration_id
         )
@@ -103,15 +103,24 @@ async def run_workflow(
             matcher_prompt=prompts["b_matcher"],
             critic_prompt=prompts["b_critic"],
         )
+        filtered_match = next(
+            (m for m in matches if m["registration_id"] == registration_id), None
+        )
+        if not filtered_match:
+            logger.warning("No match found for registration ID: %s", registration_id)
+            continue
         message2 = (
             f"Enrich matches with pricing and subsidies:\n"
             f"On approval, SAVE the output to '{pos_file}' using save_json_tool.\n"
-            f"MATCHES: ```{matches}```\n"
+            f"MATCHES: ```{[filtered_match]}```\n"
             f"OFFERS: ```{offers}```\n"
+        )
+        message2 += (
             f"INCENTIVES: ```{incentives}```\n"
             if incentives
-            else ""
+            else "INCENTIVES: Use fetch_incentives_tool to fetch incentives based on zip code.\n"
         )
+
         success2 = await process_pair(
             pair2, message2, registration_id, "Pair 2", pos_file
         )
