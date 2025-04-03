@@ -18,9 +18,12 @@ Use the provided registration data to find the best match, considering location 
    - Apply to the service region of the registration.
 3. - Determine if registration has Eco 7 Meter (Yes or No). Reflect this in the output JSON.
 4. - Determine if registration has Prepayment Meter (Yes or No). Reflect this in the output JSON.
-5. - Determine the payment method requested for both electricity and gas (e.g, Direct Debit, Cash Cheque) where applicable.
+5. - Determine the payment method requested for both electricity and gas (e.g, Direct Debit, Cash Cheque) where applicable. 
 6. - Match the registration to the applicable product type (e.g, Electricity Only, Dual Fuel).
 7. - Match the registration to the applicable product name (e.g, Elec - single rate, elec - two rate, dual fuel).
+
+**IMPORTANT**
+- For payment methods "monthlydirectdebit" = "Direct Debit" and "UNKNOWN" = "cash cheque".
 
 **Output:**
 Return only this JSON format (do not save it yourself—the critic will handle saving):
