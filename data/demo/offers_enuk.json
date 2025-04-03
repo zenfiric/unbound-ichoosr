@@ -3,7 +3,7 @@
     "SupplierOffers": [
         {
             "SupplierID": "British Gas",
-            "Capacity": 0,
+            "Capacity": 10000,
             "Offers": [
                 {
                     "ProductType": "Electricity",
