@@ -22,9 +22,6 @@ Use the provided registration data to find the best match, considering location 
 6. - Match the registration to the applicable product type (e.g, Electricity Only, Dual Fuel).
 7. - Match the registration to the applicable product name (e.g, Elec - single rate, elec - two rate, dual fuel).
 
-**IMPORTANT**
-- For payment methods "monthlydirectdebit" = "Direct Debit" and "UNKNOWN" = "cash cheque".
-
 **Output:**
 Return only this JSON format (do not save it yourself—the critic will handle saving):
 	```json
