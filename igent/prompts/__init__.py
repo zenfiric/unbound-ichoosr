@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from igent.tools import read_txt
+from igent.tools.read_txt import read_txt
 
 # Define the base path for prompts
 PROMPTS_DIR = Path(__file__).parent
