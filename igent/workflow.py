@@ -39,7 +39,7 @@ async def run_workflow(
     business_line: str = "sbus",
     registrations_file: str = "registrations.json",
     offers_file: str = "offers.json",
-    incentives_file: str | None = "incentives.json",
+    incentives_file: str | None = None,
     matches_file: str = "matches.json",
     pos_file: str = "final_matches.json",
 ):
