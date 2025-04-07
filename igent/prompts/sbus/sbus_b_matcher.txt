@@ -28,9 +28,9 @@ Enrich the input JSON and return only this format:
 	  "battery_name": <battery_name>,
 	  "battery_capacity": <battery_capacity>,
 	  "num_panels": "<panel_quantity>",
-	  "product_type": "Solar",
+	  "product_type": "<product_type>",
 	  "product_price": "<cash_price>",
 	  "eligible_subsidies": ["<incentive_name>", ...],
-	  "payment_type": "Cash"
+	  "payment_type": "<payment_methods>"
 	}]
 	```
