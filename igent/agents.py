@@ -22,7 +22,7 @@ load_dotenv(override=True)
 
 
 async def get_agents(
-    model: str, matcher_prompt: str = None, critic_prompt: str = None
+    model: str, matcher_prompt: str | None = None, critic_prompt: str | None = None
 ) -> RoundRobinGroupChat:
     """Initialize and configure a group chat with matcher and critic agents."""
     model_client = await get_model_client(model)
@@ -44,12 +44,10 @@ async def get_agents(
         reflect_on_tool_use=True,
     )
 
-    # Termination conditions: APPROVE or max 5 rounds (10 messages)
     termination = TextMentionTermination(
         "APPROVE", sources=["critic"]
     ) | MaxMessageTermination(max_messages=10)
 
-    # Chain the agents
     group_chat = RoundRobinGroupChat(
         [matcher, critic],
         termination_condition=termination,

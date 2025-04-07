@@ -1,37 +1,12 @@
-import logging
-
-import colorlog
-
 from igent.agents import get_agents
+from igent.logging_config import logger
 from igent.prompts import load_prompts
 from igent.tools.read_json import read_json
 from igent.tools.update_supplier_capacity import update_supplier_capacity
 from igent.utils import process_pair
 
-# Suppress autogen_core and httpx INFO logs
-logging.getLogger("autogen_core").setLevel(logging.WARNING)
-logging.getLogger("httpx").setLevel(logging.WARNING)
-
 # Constants
 MAX_ITEMS = 10
-
-# Configure colorlog
-handler = colorlog.StreamHandler()
-handler.setFormatter(
-    colorlog.ColoredFormatter(
-        "%(log_color)s%(levelname)s:%(message)s",
-        log_colors={
-            "DEBUG": "cyan",
-            "INFO": "green",
-            "WARNING": "yellow",
-            "ERROR": "red",
-            "CRITICAL": "red,bg_white",
-        },
-    )
-)
-logger = logging.getLogger("workflow")
-logger.addHandler(handler)
-logger.setLevel(logging.INFO)
 
 
 async def run_workflow(
@@ -77,7 +52,12 @@ async def run_workflow(
             f"OFFERS: ```{offers}```\n"
         )
         success1 = await process_pair(
-            pair1, message1, registration_id, "Pair 1", matches_file
+            pair=pair1,
+            message=message1,
+            registration_id=registration_id,
+            pair_name="Pair 1",
+            output_file=matches_file,
+            logger=logger,
         )
         if not success1:
             logger.warning("Pair 1 failed for registration %s. Skipping.", i)
@@ -89,10 +69,8 @@ async def run_workflow(
         try:
             result = await update_supplier_capacity(matches, offers_file)
             logger.info("Capacity update: %s", result)
-            offers = await read_json(
-                offers_file
-            )  # Refresh offers with updated capacity
-            logger.debug("Updated offers: %s", offers["SupplierOffers"])
+            offers = await read_json(offers_file)
+            logger.debug("Updated offers: %s", offers)
         except ValueError as e:
             logger.error("Error updating capacity: %s", e)
             continue
@@ -122,7 +100,12 @@ async def run_workflow(
         )
 
         success2 = await process_pair(
-            pair2, message2, registration_id, "Pair 2", pos_file
+            pair=pair2,
+            message=message2,
+            registration_id=registration_id,
+            pair_name="Pair 2",
+            output_file=pos_file,
+            logger=logger,
         )
         if not success2:
             logger.warning("Pair 2 failed for registration %s. Continuing.", i)

@@ -1,9 +1,9 @@
+# igent/utils.py
 import asyncio
-import logging
+from logging import Logger
 from pathlib import Path
 from typing import Any
 
-import colorlog
 import tiktoken
 from autogen_agentchat.base import TaskResult
 from autogen_agentchat.messages import TextMessage
@@ -12,34 +12,6 @@ from openai import RateLimitError
 
 TOKEN_LIMIT = 30000  # TPM limit for gpt-4o
 MODEL_NAME = "gpt-4o"
-
-# Configure colorlog
-handler = colorlog.StreamHandler()
-handler.setFormatter(
-    colorlog.ColoredFormatter(
-        "%(log_color)s%(message)s",
-        log_colors={
-            "DEBUG": "cyan",
-            "INFO": "green",
-            "WARNING": "yellow",
-            "ERROR": "red",
-            "CRITICAL": "red,bg_white",
-            "FILE": "bg_yellow,bold",
-        },
-    )
-)
-
-logger = colorlog.getLogger("process_pair")
-logger.addHandler(handler)
-logger.setLevel(logging.INFO)
-
-# Add custom level for file operations
-logging.addLevelName(60, "FILE")
-setattr(
-    logger,
-    "file",
-    lambda message, *args, **kwargs: logger.log(60, message, *args, **kwargs),
-)
 
 
 def count_tokens(messages: str | list[dict[str, Any]]) -> int:
@@ -60,7 +32,9 @@ def truncate_message(message: str, max_tokens: int) -> str:
     return encoding.decode(truncated_tokens)
 
 
-async def run_with_backoff(pair, task: list[TextMessage], max_retries: int = 3):
+async def run_with_backoff(
+    pair, task: list[TextMessage], max_retries: int = 3, logger: Logger | None = None
+):
     """Rate limit handling with exponential backoff"""
     for attempt in range(max_retries):
         try:
@@ -68,7 +42,7 @@ async def run_with_backoff(pair, task: list[TextMessage], max_retries: int = 3):
                 task=task, cancellation_token=CancellationToken()
             ):
                 yield msg
-            break  # Exit loop if successful
+            break
         except RateLimitError as e:
             if attempt < max_retries - 1:
                 wait_time = 2**attempt
@@ -82,7 +56,7 @@ async def run_with_backoff(pair, task: list[TextMessage], max_retries: int = 3):
 
 
 async def process_pair(
-    pair, message: str, registration_id: str, pair_name: str, output_file: str
+    pair, message: str, registration_id: str, pair_name: str, output_file: str, logger
 ) -> bool:
     if count_tokens(message) > TOKEN_LIMIT:
         logger.warning(
@@ -95,13 +69,15 @@ async def process_pair(
     critic_output = ""
 
     async for msg in run_with_backoff(
-        pair, [TextMessage(content=message, source="user")]
+        pair, [TextMessage(content=message, source="user")], logger=logger
     ):
         if isinstance(msg, TextMessage):
             if msg.source == "user":
                 logger.debug("User: %s", msg.content[:100])
+            elif msg.source == "matcher":
+                logger.info("matcher: %s", msg.content)  # Explicitly prefix "matcher:"
             elif msg.source == "critic":
-                logger.info("Critic: %s", msg.content)
+                logger.info("critic: %s", msg.content)  # Explicitly prefix "critic:"
                 critic_output += msg.content
             else:
                 logger.info("%s: %s", msg.source, msg.content)
@@ -112,7 +88,7 @@ async def process_pair(
                 success = "APPROVE" in msg.stop_reason or "APPROVE" in critic_output
             logger.info("%s", result)
 
-    await asyncio.sleep(1.0)  # Increase to 1 second for file I/O
+    await asyncio.sleep(1.0)
     if success:
         if not Path(output_file).exists():
             logger.error("'%s' was not saved after approval.", output_file)
