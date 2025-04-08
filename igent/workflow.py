@@ -17,6 +17,7 @@ async def run_workflow(
     incentives_file: str | None = None,
     matches_file: str = "matches.json",
     pos_file: str = "pos.json",
+    max_items: int = MAX_ITEMS,
 ):
     prompts = await load_prompts(business_line)
     registrations = await read_json(registrations_file)
@@ -24,7 +25,7 @@ async def run_workflow(
         logger.error("Registrations file must contain a list.")
         return
 
-    max_items = min(MAX_ITEMS, len(registrations))
+    max_items = min(max_items, len(registrations))
     if not max_items:
         logger.warning("No registrations to process.")
         return
