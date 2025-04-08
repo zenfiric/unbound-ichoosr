@@ -23,7 +23,7 @@ def init_csv_file(stats_file: str = EXECUTION_TIMES_CSV):
         df = pd.DataFrame(
             columns=["registration_id", "pair1_time_seconds", "pair2_time_seconds"]
         )
-        df.to_csv(EXECUTION_TIMES_CSV, index=False)
+        df.to_csv(stats_file, index=False)
 
 
 def update_execution_times(
@@ -73,10 +73,10 @@ async def run_workflow(
     matches_file: str = "matches.json",
     pos_file: str = "pos.json",
     max_items: int = MAX_ITEMS,
-    stats_file: str = "execution_times.csv",
+    stats_file: str = EXECUTION_TIMES_CSV,
 ):
-    stats_file = f"{business_line}_{stats_file}" or EXECUTION_TIMES_CSV
-    init_csv_file(stats_file)
+    stats_file = f"{business_line}_{stats_file}"
+    init_csv_file(stats_file=stats_file)
 
     prompts = await load_prompts(business_line)
     registrations = await read_json(registrations_file)
