@@ -17,7 +17,10 @@ load_dotenv(override=True)
 
 
 async def get_agents(
-    model: str, matcher_prompt: str | None = None, critic_prompt: str | None = None
+    model: str,
+    stream: bool = False,
+    matcher_prompt: str | None = None,
+    critic_prompt: str | None = None,
 ) -> RoundRobinGroupChat:
     """Initialize and configure a group chat with matcher and critic agents."""
     model_client = await get_model_client(model)
@@ -26,7 +29,7 @@ async def get_agents(
         model_client=model_client,
         system_message=matcher_prompt,
         tools=[fetch_incentives_tool],
-        model_client_stream=False,
+        model_client_stream=stream,
         reflect_on_tool_use=True,
     )
 
@@ -35,7 +38,7 @@ async def get_agents(
         model_client=model_client,
         system_message=critic_prompt,
         tools=[save_json_tool],
-        model_client_stream=False,
+        model_client_stream=stream,
         reflect_on_tool_use=True,
     )
 

@@ -67,6 +67,7 @@ def update_execution_times(
 
 async def run_workflow(
     model: str,
+    stream: bool = False,
     business_line: str = "sbus",
     registrations_file: str = "registrations.json",
     offers_file: str = "offers.json",
@@ -104,6 +105,7 @@ async def run_workflow(
         # Pair 1: Matcher + Critic with timing
         pair1 = await get_agents(
             model=model,
+            stream=stream,
             matcher_prompt=prompts["a_matcher"],
             critic_prompt=prompts["a_critic"],
         )
@@ -147,6 +149,7 @@ async def run_workflow(
         # Pair 2: Subsidy Matcher + Subsidy Critic with timing
         pair2 = await get_agents(
             model=model,
+            stream=stream,
             matcher_prompt=prompts["b_matcher"],
             critic_prompt=prompts["b_critic"],
         )
