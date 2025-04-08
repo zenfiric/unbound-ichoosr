@@ -79,6 +79,11 @@ async def run_workflow(
 ):
     stats_file = Path(stats_file)
     stats_file = stats_file.parent / f"{business_line}_{model}_{stats_file.name}"
+    matches_file = Path(matches_file)
+    matches_file = matches_file.parent / f"{business_line}_{model}_{matches_file.name}"
+    pos_file = Path(pos_file)
+    pos_file = pos_file.parent / f"{business_line}_{model}_{pos_file.name}"
+
     init_csv_file(stats_file=stats_file)
 
     prompts = await load_prompts(business_line)
