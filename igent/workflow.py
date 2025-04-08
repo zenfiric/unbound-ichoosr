@@ -1,5 +1,6 @@
 import os
 import time
+from pathlib import Path
 
 import pandas as pd
 
@@ -75,7 +76,8 @@ async def run_workflow(
     max_items: int = MAX_ITEMS,
     stats_file: str = EXECUTION_TIMES_CSV,
 ):
-    stats_file = f"{business_line}_{stats_file}"
+    stats_file = Path(stats_file)
+    stats_file = stats_file.parent / f"{business_line}_{model}_{stats_file.name}"
     init_csv_file(stats_file=stats_file)
 
     prompts = await load_prompts(business_line)
