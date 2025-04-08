@@ -28,4 +28,6 @@ Enrich the input JSON and return only this format:
 	  "payment_type": "<payment_methods>"
 	}]
 	```
+
+**IMPORTANT:**
 Only reply to the critic if absolutely necessary. If so, be concise!
