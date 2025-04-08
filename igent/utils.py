@@ -1,9 +1,10 @@
-# igent/utils.py
 import asyncio
+import os
 from logging import Logger
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
 import tiktoken
 from autogen_agentchat.base import TaskResult
 from autogen_agentchat.messages import TextMessage
@@ -12,6 +13,94 @@ from openai import RateLimitError
 
 TOKEN_LIMIT = 30000  # TPM limit for gpt-4o
 MODEL_NAME = "gpt-4o"
+
+# Constants
+MAX_ITEMS = 10
+
+# CSV file path
+EXECUTION_TIMES_CSV = "execution_times.csv"
+
+
+def init_csv_file(stats_file: str = EXECUTION_TIMES_CSV, columns: list = None):
+    """Initialize CSV file with headers if it doesn't exist."""
+    if not os.path.exists(stats_file):
+        if columns is None:
+            columns = [
+                "registration_id",
+                "group_time_seconds",
+            ]  # Default for single-group cases
+        df = pd.DataFrame(columns=columns)
+        df.to_csv(stats_file, index=False)
+
+
+def update_execution_times(
+    registration_id: str,
+    stats_file: str = EXECUTION_TIMES_CSV,
+    group_time: float = None,
+    pair1_time: float = None,
+    pair2_time: float = None,
+    matcher1_time: float = None,
+    matcher2_time: float = None,
+):
+    """Update execution times in CSV file using pandas with flexible time arguments."""
+    # Read existing data or initialize if file doesn't exist
+    if not os.path.exists(stats_file):
+        # Default columns based on provided arguments
+        columns = ["registration_id"]
+        if group_time is not None:
+            columns.append("group_time_seconds")
+        if pair1_time is not None:
+            columns.append("pair1_time_seconds")
+        if pair2_time is not None:
+            columns.append("pair2_time_seconds")
+        if matcher1_time is not None:
+            columns.append("matcher1_time_seconds")
+        if matcher2_time is not None:
+            columns.append("matcher2_time_seconds")
+        init_csv_file(stats_file, columns=columns)
+
+    df = pd.read_csv(stats_file)
+
+    # Check if registration_id exists
+    if registration_id in df["registration_id"].values:
+        # Update existing row
+        if group_time is not None and "group_time_seconds" in df.columns:
+            df.loc[df["registration_id"] == registration_id, "group_time_seconds"] = (
+                f"{group_time:.3f}"
+            )
+        if pair1_time is not None and "pair1_time_seconds" in df.columns:
+            df.loc[df["registration_id"] == registration_id, "pair1_time_seconds"] = (
+                f"{pair1_time:.3f}"
+            )
+        if pair2_time is not None and "pair2_time_seconds" in df.columns:
+            df.loc[df["registration_id"] == registration_id, "pair2_time_seconds"] = (
+                f"{pair2_time:.3f}"
+            )
+        if matcher1_time is not None and "matcher1_time_seconds" in df.columns:
+            df.loc[
+                df["registration_id"] == registration_id, "matcher1_time_seconds"
+            ] = f"{matcher1_time:.3f}"
+        if matcher2_time is not None and "matcher2_time_seconds" in df.columns:
+            df.loc[
+                df["registration_id"] == registration_id, "matcher2_time_seconds"
+            ] = f"{matcher2_time:.3f}"
+    else:
+        # Add new row
+        new_row = {"registration_id": registration_id}
+        if group_time is not None:
+            new_row["group_time_seconds"] = f"{group_time:.3f}"
+        if pair1_time is not None:
+            new_row["pair1_time_seconds"] = f"{pair1_time:.3f}"
+        if pair2_time is not None:
+            new_row["pair2_time_seconds"] = f"{pair2_time:.3f}"
+        if matcher1_time is not None:
+            new_row["matcher1_time_seconds"] = f"{matcher1_time:.3f}"
+        if matcher2_time is not None:
+            new_row["matcher2_time_seconds"] = f"{matcher2_time:.3f}"
+        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+
+    # Save updated dataframe
+    df.to_csv(stats_file, index=False)
 
 
 def count_tokens(messages: str | list[dict[str, Any]]) -> int:

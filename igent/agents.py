@@ -12,47 +12,62 @@ load_dotenv(override=True)
 
 
 async def get_agents(
-    model: str,
-    stream: bool = False,
-    matcher_prompt: str | None = None,
-    critic_prompt: str | None = None,
+    model: str, stream: bool = False, prompts: dict = None
 ) -> RoundRobinGroupChat:
-    """Initialize and configure a group chat with matcher and optionally critic agents."""
+    """Initialize and configure a group chat with agents based on provided prompts."""
+    if not prompts or not isinstance(prompts, dict):
+        raise ValueError("Prompts must be a non-empty dictionary with agent prompts")
+
     model_client = await get_model_client(model)
 
     agents = []
+    has_critic = False
 
-    if matcher_prompt is not None:
-        matcher = AssistantAgent(
-            name="matcher",
+    # Create agents based on prompts dictionary
+    for agent_name, prompt in prompts.items():
+        if not prompt:
+            continue
+
+        tools = [save_json_tool]
+        if "matcher2" in agent_name:
+            tools.append(fetch_incentives_tool)
+
+        agent = AssistantAgent(
+            name=agent_name,
             model_client=model_client,
-            system_message=matcher_prompt,
-            tools=[fetch_incentives_tool, save_json_tool],
+            system_message=prompt,
+            tools=tools,
             model_client_stream=stream,
             reflect_on_tool_use=True,
         )
-        agents.append(matcher)
-
-    if critic_prompt is not None:
-        critic = AssistantAgent(
-            name="critic",
-            model_client=model_client,
-            system_message=critic_prompt,
-            tools=[save_json_tool],
-            model_client_stream=stream,
-            reflect_on_tool_use=True,
-        )
-        agents.append(critic)
+        agents.append(agent)
+        if "critic" in agent_name.lower():
+            has_critic = True
 
     if not agents:
-        raise ValueError("Please provide at least one prompt")
+        raise ValueError("No valid agents created from prompts")
 
-    if critic_prompt is not None and matcher_prompt is not None:
-        terminations = TextMentionTermination(
-            "APPROVE", sources=[critic.name]
-        ) | MaxMessageTermination(max_messages=5)
+    # Define termination condition
+    if has_critic:
+        if "critic1" in prompts and "critic2" in prompts:
+            terminations = (
+                TextMentionTermination("APPROVE", sources=["critic1"])
+                & TextMentionTermination("APPROVE", sources=["critic2"])
+                & MaxMessageTermination(max_messages=10)
+            )
+        elif "critic1" in prompts:
+            terminations = TextMentionTermination(
+                "APPROVE", sources=["critic1"]
+            ) | MaxMessageTermination(max_messages=10)
+        elif "critic2" in prompts:
+            terminations = TextMentionTermination(
+                "APPROVE", sources=["critic2"]
+            ) | MaxMessageTermination(max_messages=10)
+        else:
+            terminations = MaxMessageTermination(max_messages=len(agents) * 3)
     else:
-        terminations = MaxMessageTermination(max_messages=1)
+        # No critics, terminate after a few messages
+        terminations = MaxMessageTermination(max_messages=len(agents) * 2)
 
     group_chat = RoundRobinGroupChat(
         agents,

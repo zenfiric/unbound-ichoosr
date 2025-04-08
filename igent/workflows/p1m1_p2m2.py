@@ -1,68 +1,18 @@
-import os
 import time
 from pathlib import Path
-
-import pandas as pd
 
 from igent.agents import get_agents
 from igent.logging_config import logger
 from igent.prompts import load_prompts
 from igent.tools.read_json import read_json
 from igent.tools.update_supplier_capacity import update_supplier_capacity
-from igent.utils import process_pair
-
-# Constants
-MAX_ITEMS = 10
-
-# CSV file path
-EXECUTION_TIMES_CSV = "execution_times.csv"
-
-
-def init_csv_file(stats_file: str = EXECUTION_TIMES_CSV):
-    """Initialize CSV file with headers if it doesn't exist"""
-    if not os.path.exists(stats_file):
-        df = pd.DataFrame(
-            columns=["registration_id", "pair1_time_seconds", "pair2_time_seconds"]
-        )
-        df.to_csv(stats_file, index=False)
-
-
-def update_execution_times(
-    registration_id: str,
-    pair1_time: float = None,
-    pair2_time: float = None,
-    stats_file: str = EXECUTION_TIMES_CSV,
-):
-    """Update execution times in CSV file using pandas"""
-    # Read existing data
-    df = pd.read_csv(stats_file)
-
-    # Check if registration_id exists
-    if registration_id in df["registration_id"].values:
-        # Update existing row
-        if pair1_time is not None:
-            df.loc[df["registration_id"] == registration_id, "pair1_time_seconds"] = (
-                f"{pair1_time:.3f}"
-            )
-        if pair2_time is not None:
-            df.loc[df["registration_id"] == registration_id, "pair2_time_seconds"] = (
-                f"{pair2_time:.3f}"
-            )
-    else:
-        # Add new row
-        new_row = {
-            "registration_id": registration_id,
-            "pair1_time_seconds": (
-                f"{pair1_time:.3f}" if pair1_time is not None else None
-            ),
-            "pair2_time_seconds": (
-                f"{pair2_time:.3f}" if pair2_time is not None else None
-            ),
-        }
-        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-
-    # Save updated dataframe
-    df.to_csv(stats_file, index=False)
+from igent.utils import (
+    EXECUTION_TIMES_CSV,
+    MAX_ITEMS,
+    init_csv_file,
+    process_pair,
+    update_execution_times,
+)
 
 
 async def run_workflow(
@@ -77,7 +27,7 @@ async def run_workflow(
     max_items: int = MAX_ITEMS,
     stats_file: str = EXECUTION_TIMES_CSV,
 ):
-    """Run the workflow for processing registrations."""
+    """Run the workflow for processing registrations with (matcher1) -> (matcher2) configuration."""
     stats_file = Path(stats_file)
     stats_file = stats_file.parent / f"{business_line}_{model}_{stats_file.name}"
     matches_file = Path(matches_file)
@@ -85,7 +35,10 @@ async def run_workflow(
     pos_file = Path(pos_file)
     pos_file = pos_file.parent / f"{business_line}_{model}_{pos_file.name}"
 
-    init_csv_file(stats_file=stats_file)
+    init_csv_file(
+        stats_file=stats_file,
+        columns=["registration_id", "matcher1_time_seconds", "matcher2_time_seconds"],
+    )
 
     prompts = await load_prompts(business_line)
     registrations = await read_json(registrations_file)
@@ -108,11 +61,13 @@ async def run_workflow(
             "Processing registration %s/%s (ID: %s)", i, max_items, registration_id
         )
 
-        pair1 = await get_agents(
+        # Matcher 1
+        matcher1 = await get_agents(
             model=model,
             stream=stream,
-            matcher_prompt=prompts["a_matcher"],
-            critic_prompt=prompts["a_critic"],
+            prompts={
+                "matcher1": prompts["a_matcher"],
+            },
         )
         message1 = (
             f"Match based on instructions in system prompt.\n"
@@ -122,21 +77,23 @@ async def run_workflow(
         )
         start_time = time.time()
         success1 = await process_pair(
-            pair=pair1,
+            pair=matcher1,
             message=message1,
             registration_id=registration_id,
-            pair_name="Pair 1",
+            pair_name="Matcher 1",
             output_file=matches_file,
             logger=logger,
         )
-        pair1_time = time.time() - start_time
-        logger.info("Pair 1 execution time: %.3f seconds", pair1_time)
+        matcher1_time = time.time() - start_time
+        logger.info("Matcher 1 execution time: %.3f seconds", matcher1_time)
 
-        # Save Pair 1 time
-        update_execution_times(registration_id, pair1_time, stats_file=stats_file)
+        # Save Matcher 1 time
+        update_execution_times(
+            registration_id, matcher1_time=matcher1_time, stats_file=stats_file
+        )
 
         if not success1:
-            logger.warning("Pair 1 failed for registration %s. Skipping.", i)
+            logger.warning("Matcher 1 failed for registration %s. Skipping.", i)
             continue
 
         matches = await read_json(matches_file)
@@ -150,11 +107,13 @@ async def run_workflow(
             logger.error("Error updating capacity: %s", e)
             continue
 
-        pair2 = await get_agents(
+        # Matcher 2
+        matcher2 = await get_agents(
             model=model,
             stream=stream,
-            matcher_prompt=prompts["b_matcher"],
-            critic_prompt=prompts["b_critic"],
+            prompts={
+                "matcher2": prompts["b_matcher"],
+            },
         )
         filtered_match = next(
             (m for m in matches if m["registration_id"] == registration_id), None
@@ -176,22 +135,22 @@ async def run_workflow(
 
         start_time = time.time()
         success2 = await process_pair(
-            pair=pair2,
+            pair=matcher2,
             message=message2,
             registration_id=registration_id,
-            pair_name="Pair 2",
+            pair_name="Matcher 2",
             output_file=pos_file,
             logger=logger,
         )
-        pair2_time = time.time() - start_time
-        logger.info("Pair 2 execution time: %.3f seconds", pair2_time)
+        matcher2_time = time.time() - start_time
+        logger.info("Matcher 2 execution time: %.3f seconds", matcher2_time)
 
-        # Update with Pair 2 time
+        # Update with Matcher 2 time
         update_execution_times(
-            registration_id, pair2_time=pair2_time, stats_file=stats_file
+            registration_id, matcher2_time=matcher2_time, stats_file=stats_file
         )
 
         if not success2:
-            logger.warning("Pair 2 failed for registration %s. Continuing.", i)
+            logger.warning("Matcher 2 failed for registration %s. Continuing.", i)
 
     logger.info("Processed %s registrations successfully.", max_items)
