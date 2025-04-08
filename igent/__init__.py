@@ -1,3 +1,3 @@
-from .agents import get_agents, get_history
+from .agents import get_agents
 
-__all__ = ["get_agents", "get_history"]
+__all__ = ["get_agents"]

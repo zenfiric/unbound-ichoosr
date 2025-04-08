@@ -77,6 +77,7 @@ async def run_workflow(
     max_items: int = MAX_ITEMS,
     stats_file: str = EXECUTION_TIMES_CSV,
 ):
+    """Run the workflow for processing registrations."""
     stats_file = Path(stats_file)
     stats_file = stats_file.parent / f"{business_line}_{model}_{stats_file.name}"
     matches_file = Path(matches_file)
@@ -107,7 +108,6 @@ async def run_workflow(
             "Processing registration %s/%s (ID: %s)", i, max_items, registration_id
         )
 
-        # Pair 1: Matcher + Critic with timing
         pair1 = await get_agents(
             model=model,
             stream=stream,
@@ -116,7 +116,7 @@ async def run_workflow(
         )
         message1 = (
             f"Match based on instructions in system prompt.\n"
-            f"On approval, SAVE the output to '{matches_file}' using save_json_tool.\n"
+            f"SAVE the output to '{matches_file}' using save_json_tool.\n"
             f"REGISTRATION: ```{[registration]}```\n"
             f"OFFERS: ```{offers}```\n"
         )
@@ -139,7 +139,6 @@ async def run_workflow(
             logger.warning("Pair 1 failed for registration %s. Skipping.", i)
             continue
 
-        # Update supplier capacity after Pair 1 approval
         matches = await read_json(matches_file)
         logger.debug("Current match for update: %s", matches)
         try:
@@ -151,7 +150,6 @@ async def run_workflow(
             logger.error("Error updating capacity: %s", e)
             continue
 
-        # Pair 2: Subsidy Matcher + Subsidy Critic with timing
         pair2 = await get_agents(
             model=model,
             stream=stream,
@@ -166,7 +164,7 @@ async def run_workflow(
             continue
         message2 = (
             f"Enrich matches with pricing and subsidies:\n"
-            f"On approval, SAVE the output to '{pos_file}' using save_json_tool.\n"
+            f"SAVE the output to '{pos_file}' using save_json_tool.\n"
             f"MATCHES: ```{[filtered_match]}```\n"
             f"OFFERS: ```{offers}```\n"
         )
