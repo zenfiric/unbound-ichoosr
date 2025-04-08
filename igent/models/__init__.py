@@ -1,10 +1,14 @@
+from typing import Literal
+
 from .azure_deepseek import _get_azure
 from .openai import _get_openai
 
 MODELS = {"openai": _get_openai, "azure": _get_azure}
 
 
-async def get_model_client(model: str, api_key: str | None = None):
+async def get_model_client(
+    model: Literal["openai", "azure"], api_key: str | None = None
+):
     if model not in MODELS:
         raise ValueError(f"Unsupported model: {model}")
 
