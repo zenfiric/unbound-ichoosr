@@ -1,4 +1,3 @@
-import json
 import time
 from pathlib import Path
 
@@ -13,6 +12,7 @@ from igent.utils import (
     init_csv_file,
     process_pair,
     update_execution_times,
+    update_json_list,
 )
 
 
@@ -98,12 +98,8 @@ async def run_workflow(
             logger.warning("Matcher 1 failed for registration %s. Skipping.", i)
             continue
 
-        # Save Matcher 1 output from chat result
-        json_output1 = result1["json_output"]
-        matches_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(matches_file, "w", encoding="utf-8") as f:
-            json.dump(json_output1, f, indent=2)
-        logger.file("Matcher 1 saved output to %s: %s", matches_file, json_output1)
+        # Save Matcher 1 output to matches_file as a list
+        update_json_list(matches_file, result1["json_output"], logger)
 
         # Save Matcher 1 time
         update_execution_times(
@@ -167,12 +163,8 @@ async def run_workflow(
             logger.warning("Matcher 2 failed for registration %s. Continuing.", i)
             continue
 
-        # Save Matcher 2 output from chat result
-        json_output2 = result2["json_output"]
-        pos_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(pos_file, "w", encoding="utf-8") as f:
-            json.dump(json_output2, f, indent=2)
-        logger.file("Matcher 2 saved output to %s: %s", pos_file, json_output2)
+        # Save Matcher 2 output to pos_file as a list
+        update_json_list(pos_file, result2["json_output"], logger)
 
         # Update with Matcher 2 time
         update_execution_times(

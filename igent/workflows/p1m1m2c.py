@@ -1,4 +1,3 @@
-import json
 import time
 from pathlib import Path
 
@@ -13,6 +12,7 @@ from igent.utils import (
     init_csv_file,
     process_pair,
     update_execution_times,
+    update_json_list,
 )
 
 
@@ -106,12 +106,8 @@ async def run_workflow(
             logger.warning("Matcher1-Critic failed for registration %s. Skipping.", i)
             continue
 
-        # Save Matcher1's output
-        matches_output = result1["json_output"]
-        matches_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(matches_file, "w", encoding="utf-8") as f:
-            json.dump(matches_output, f, indent=2)
-        logger.file("Matcher1 saved output to %s: %s", matches_file, matches_output)
+        # Save Matcher1 output
+        update_json_list(matches_file, result1["json_output"], logger)
 
         # Update supplier capacity
         matches = await read_json(matches_file)
@@ -171,12 +167,8 @@ async def run_workflow(
             logger.warning("Matcher2 failed for registration %s. Continuing.", i)
             continue
 
-        # Save Matcher2's output
-        pos_output = result2["json_output"]
-        pos_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(pos_file, "w", encoding="utf-8") as f:
-            json.dump(pos_output, f, indent=2)
-        logger.file("Matcher2 saved output to %s: %s", pos_file, pos_output)
+        # Save Matcher2 output
+        update_json_list(pos_file, result2["json_output"], logger)
 
         # Update execution times
         update_execution_times(

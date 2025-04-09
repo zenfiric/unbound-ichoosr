@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 from logging import Logger
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -36,7 +37,7 @@ def update_execution_times(
     pair2_time: float = None,
     matcher1_time: float = None,
     matcher2_time: float = None,
-    matcher1_critic_time: float = None,  # Added for p1m1m2c
+    matcher1_critic_time: float = None,
 ) -> None:
     """Update execution times in CSV file using pandas with flexible time arguments."""
     if not os.path.exists(stats_file):
@@ -250,3 +251,66 @@ async def process_pair(
             return {"success": False, "json_output": None}
         logger.info("%s completed successfully.", pair_name)
         return {"success": True, "json_output": json_output}
+
+
+def update_json_list(
+    file_path: Path,
+    new_entry: Any,
+    logger: Logger,
+    registration_key: str = "registration_id",
+) -> None:
+    """Update or append to a JSON list file based on registration_id or RegistrationNumber."""
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Normalize new_entry: if it's a single-item list, extract the dict
+    if isinstance(new_entry, list) and len(new_entry) == 1:
+        new_entry = new_entry[0]
+    elif not isinstance(new_entry, dict):
+        logger.error(
+            "New entry must be a dict or single-item list. Skipping save: %s", new_entry
+        )
+        return
+
+    # Read existing list if file exists, otherwise start with an empty list
+    if file_path.exists():
+        with open(file_path, "r", encoding="utf-8") as f:
+            try:
+                existing_list = json.load(f)
+                if not isinstance(existing_list, list):
+                    logger.warning(
+                        f"File {file_path} does not contain a list. Overwriting with new list."
+                    )
+                    existing_list = []
+            except json.JSONDecodeError:
+                logger.warning(
+                    f"File {file_path} is corrupted. Starting with new list."
+                )
+                existing_list = []
+    else:
+        existing_list = []
+
+    # Check for registration_id or RegistrationNumber in the new entry
+    new_id = new_entry.get(registration_key) or new_entry.get("RegistrationNumber")
+    if not new_id:
+        logger.error(
+            "New entry lacks registration_id or RegistrationNumber. Skipping save: %s",
+            new_entry,
+        )
+        return
+
+    # Update existing entry if found, otherwise append
+    updated = False
+    for i, entry in enumerate(existing_list):
+        existing_id = entry.get(registration_key) or entry.get("RegistrationNumber")
+        if existing_id == new_id:
+            existing_list[i] = new_entry
+            updated = True
+            break
+
+    if not updated:
+        existing_list.append(new_entry)
+
+    # Save the updated list back to the file
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(existing_list, f, indent=2)
+    logger.file("Updated %s with entry for ID %s: %s", file_path, new_id, new_entry)
