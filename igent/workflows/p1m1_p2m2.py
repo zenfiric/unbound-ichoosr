@@ -1,5 +1,4 @@
 import time
-from pathlib import Path
 
 from igent.agents import get_agents
 from igent.logging_config import logger
@@ -9,10 +8,11 @@ from igent.tools.update_supplier_capacity import update_supplier_capacity
 from igent.utils import (
     EXECUTION_TIMES_CSV,
     MAX_ITEMS,
-    init_csv_file,
+    construct_file_path,
+    init_csv,
     process_pair,
-    update_execution_times,
     update_json_list,
+    update_runtime,
 )
 
 
@@ -30,22 +30,14 @@ async def run_workflow(
     configuration: str = "p1m1_p2m1",
 ):
     """Run the workflow for processing registrations with (matcher1) -> (matcher2) configuration."""
-    stats_file = Path(stats_file)
-    stats_file = (
-        stats_file.parent / f"{configuration}_{business_line}_{model}_{stats_file.name}"
+    stats_file = construct_file_path(stats_file, configuration, business_line, model)
+    matches_file = construct_file_path(
+        matches_file, configuration, business_line, model
     )
-    matches_file = Path(matches_file)
-    matches_file = (
-        matches_file.parent
-        / f"{configuration}_{business_line}_{model}_{matches_file.name}"
-    )
-    pos_file = Path(pos_file)
-    pos_file = (
-        pos_file.parent / f"{configuration}_{business_line}_{model}_{pos_file.name}"
-    )
+    pos_file = construct_file_path(pos_file, configuration, business_line, model)
 
-    init_csv_file(
-        stats_file=stats_file,
+    init_csv(
+        filepath=stats_file,
         columns=["registration_id", "matcher1_time_seconds", "matcher2_time_seconds"],
     )
 
@@ -65,10 +57,8 @@ async def run_workflow(
     incentives = await read_json(incentives_file) if incentives_file else None
 
     for i, registration in enumerate(registrations[:max_items], 1):
-        registration_id = registration.get("RegistrationNumber", "unknown")
-        logger.info(
-            "Processing registration %s/%s (ID: %s)", i, max_items, registration_id
-        )
+        run_id = registration.get("RegistrationNumber", "unknown")
+        logger.info("Processing registration %s/%s (ID: %s)", i, max_items, run_id)
 
         # Matcher 1
         matcher1 = await get_agents(
@@ -87,24 +77,19 @@ async def run_workflow(
         result1 = await process_pair(
             pair=matcher1,
             message=message1,
-            registration_id=registration_id,
+            run_id=run_id,
             pair_name="Matcher 1",
             logger=logger,
         )
-        matcher1_time = time.time() - start_time
-        logger.info("Matcher 1 execution time: %.3f seconds", matcher1_time)
+        t_matcher1 = time.time() - start_time
+        logger.info("Matcher 1 execution time: %.3f seconds", t_matcher1)
 
         if not result1 or not result1["success"]:
             logger.warning("Matcher 1 failed for registration %s. Skipping.", i)
             continue
 
-        # Save Matcher 1 output to matches_file as a list
         update_json_list(matches_file, result1["json_output"], logger)
-
-        # Save Matcher 1 time
-        update_execution_times(
-            registration_id, matcher1_time=matcher1_time, stats_file=stats_file
-        )
+        update_runtime(run_id, t_matcher1=t_matcher1, filepath=stats_file)
 
         matches = await read_json(matches_file)
         logger.debug("Current match for update: %s", matches)
@@ -129,13 +114,13 @@ async def run_workflow(
             (
                 m
                 for m in matches
-                if m.get("registration_id") == registration_id
-                or m.get("RegistrationNumber") == registration_id
+                if m.get("registration_id") == run_id
+                or m.get("RegistrationNumber") == run_id
             ),
             None,
         )
         if not filtered_match:
-            logger.warning("No match found for registration ID: %s", registration_id)
+            logger.warning("No match found for registration ID: %s", run_id)
             continue
         message2 = (
             f"Enrich matches with pricing and subsidies:\n"
@@ -152,23 +137,18 @@ async def run_workflow(
         result2 = await process_pair(
             pair=matcher2,
             message=message2,
-            registration_id=registration_id,
+            run_id=run_id,
             pair_name="Matcher 2",
             logger=logger,
         )
-        matcher2_time = time.time() - start_time
-        logger.info("Matcher 2 execution time: %.3f seconds", matcher2_time)
+        t_matcher2 = time.time() - start_time
+        logger.info("Matcher 2 execution time: %.3f seconds", t_matcher2)
 
         if not result2 or not result2["success"]:
             logger.warning("Matcher 2 failed for registration %s. Continuing.", i)
             continue
 
-        # Save Matcher 2 output to pos_file as a list
         update_json_list(pos_file, result2["json_output"], logger)
-
-        # Update with Matcher 2 time
-        update_execution_times(
-            registration_id, matcher2_time=matcher2_time, stats_file=stats_file
-        )
+        update_runtime(run_id, t_matcher2=t_matcher2, filepath=stats_file)
 
     logger.info("Processed %s registrations successfully.", max_items)

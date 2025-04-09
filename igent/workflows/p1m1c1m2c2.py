@@ -9,9 +9,9 @@ from igent.tools.update_supplier_capacity import update_supplier_capacity
 from igent.utils import (
     EXECUTION_TIMES_CSV,
     MAX_ITEMS,
-    init_csv_file,
+    init_csv,
     process_pair,
-    update_execution_times,
+    update_runtime,
 )
 
 
@@ -35,9 +35,7 @@ async def run_workflow(
     pos_file = Path(pos_file)
     pos_file = pos_file.parent / f"{business_line}_{model}_{pos_file.name}"
 
-    init_csv_file(
-        stats_file=stats_file, columns=["registration_id", "group_time_seconds"]
-    )
+    init_csv(filepath=stats_file, columns=["registration_id", "group_time_seconds"])
 
     prompts = await load_prompts(business_line)
     registrations = await read_json(registrations_file)
@@ -55,10 +53,8 @@ async def run_workflow(
     incentives = await read_json(incentives_file) if incentives_file else None
 
     for i, registration in enumerate(registrations[:max_items], 1):
-        registration_id = registration.get("RegistrationNumber", "unknown")
-        logger.info(
-            "Processing registration %s/%s (ID: %s)", i, max_items, registration_id
-        )
+        run_id = registration.get("RegistrationNumber", "unknown")
+        logger.info("Processing registration %s/%s (ID: %s)", i, max_items, run_id)
 
         # Single group with matcher1, critic1, matcher2, and critic2
         group = await get_agents(
@@ -94,17 +90,15 @@ async def run_workflow(
         success = await process_pair(
             pair=group,
             message=message,
-            registration_id=registration_id,
+            run_id=run_id,
             pair_name="Matcher1-Critic1-Matcher2-Critic2 Group",
             output_file=pos_file,  # Final output goes to pos_file
             logger=logger,
         )
-        group_time = time.time() - start_time
-        logger.info("Group execution time: %.3f seconds", group_time)
+        t_group = time.time() - start_time
+        logger.info("Group execution time: %.3f seconds", t_group)
 
-        update_execution_times(
-            registration_id, group_time=group_time, stats_file=stats_file
-        )
+        update_runtime(run_id, t_group=t_group, filepath=stats_file)
 
         if not success:
             logger.warning("Group processing failed for registration %s. Skipping.", i)
