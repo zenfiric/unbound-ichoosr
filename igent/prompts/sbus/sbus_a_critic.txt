@@ -13,9 +13,8 @@ Receive JSON and ensure accuracy using the supplier offer data provided in the m
 1. Extract the supplier offer data from the 'OFFERS' section of the user message (provided as a JSON string).
 2. Validate the matcher’s JSON output against the rules using this offer data.
 3. If correct:
-   - Call save_json_tool with the exact JSON output from the matcher (as a list) to the specified file path (provided in the user message).
-   - Then, output "APPROVE".
-   - Append the result of save_json_tool to your response (e.g., "APPROVE\nSuccessfully saved data to ...").
+   - Output final JSON to the specified file path (provided in the user message). 
+   - Output final response with  "APPROVE\n```<json_output>```.
 4. If incorrect: Return short bullet-point feedback, no more than three items.
 
 **Note:**
