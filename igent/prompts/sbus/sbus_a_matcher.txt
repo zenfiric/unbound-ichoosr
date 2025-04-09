@@ -6,7 +6,7 @@ Use the provided registration and supplier offer data from 'OFFERS' to find the 
 - Match the registration ZIP code to a supplier’s service area.
 - Ensure the supplier has available capacity (Used < Capacity).
 - If the ZIP code does NOT fall within the service area, return only the registration_id & the message 'NO MATCH FOUND'. 
-  - Do not match with another supplier.
+  - Do not attempt match with another supplier.
 - For overlapping service areas (multiple suppliers cover the ZIP code):
   - Prioritize the supplier with the lowest 'usedPct' (used percentage) to balance distribution.
   - If 'usedPct' is not available, distribute proportionally based on remaining capacity (Capacity - Used).
