@@ -6,7 +6,7 @@ from autogen_agentchat.teams import RoundRobinGroupChat
 from dotenv import load_dotenv
 
 from igent.models import get_model_client
-from igent.tools import fetch_incentives_tool, save_json_tool
+from igent.tools import fetch_incentives_tool
 
 load_dotenv(override=True)
 
@@ -39,7 +39,7 @@ async def get_agents(
             name=agent_name,
             model_client=model_client,
             system_message=updated_prompt,
-            tools=[save_json_tool, fetch_incentives_tool],
+            tools=[fetch_incentives_tool],
             model_client_stream=stream,
             reflect_on_tool_use=True,
         )

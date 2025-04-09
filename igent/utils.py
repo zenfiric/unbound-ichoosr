@@ -1,7 +1,7 @@
 import asyncio
+import json
 import os
 from logging import Logger
-from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -145,8 +145,9 @@ async def run_with_backoff(
 
 
 async def process_pair(
-    pair, message: str, registration_id: str, pair_name: str, output_file: str, logger
-) -> bool:
+    pair, message: str, registration_id: str, pair_name: str, logger: Logger
+) -> dict[str, Any]:
+    """Process a pair or group, return success and JSON output from matcher."""
     if count_tokens(message) > TOKEN_LIMIT:
         logger.warning(
             "Message for %s exceeds %d tokens. Truncating...", pair_name, TOKEN_LIMIT
@@ -155,7 +156,8 @@ async def process_pair(
 
     logger.info("Running %s for registration %s", pair_name, registration_id)
     success = False
-    critic_output = ""
+    matcher_output = ""
+    json_output = None
 
     async for msg in run_with_backoff(
         pair, [TextMessage(content=message, source="user")], logger=logger
@@ -163,39 +165,43 @@ async def process_pair(
         if isinstance(msg, TextMessage):
             if msg.source == "user":
                 logger.debug("User: %s", msg.content[:100])
-            elif msg.source == "matcher":
-                logger.info("matcher: %s", msg.content)  # Explicitly prefix "matcher:"
-            elif msg.source == "critic":
-                logger.info("critic: %s", msg.content)  # Explicitly prefix "critic:"
-                critic_output += msg.content
+            elif "matcher" in msg.source.lower():
+                logger.info("matcher: %s", msg.content)
+                matcher_output += msg.content
+                # Extract JSON from matcher's output
+                try:
+                    json_start = matcher_output.find("```json") + 7
+                    json_end = matcher_output.rfind("```")
+                    if json_start > 6 and json_end > json_start:
+                        json_str = matcher_output[json_start:json_end].strip()
+                        json_output = json.loads(json_str)
+                except json.JSONDecodeError as e:
+                    logger.error("Failed to parse JSON from matcher output: %s", e)
+            elif "critic" in msg.source.lower():
+                logger.info("critic: %s", msg.content)
+                if "APPROVE" in msg.content.upper():
+                    success = True
             else:
                 logger.info("%s: %s", msg.source, msg.content)
         elif isinstance(msg, TaskResult):
-            result = "%s completed." % pair_name
+            result = f"{pair_name} completed."
             if msg.stop_reason:
                 result += f" Stop reason: {msg.stop_reason}"
-                success = "APPROVE" in msg.stop_reason or "APPROVE" in critic_output
+                success = success or "APPROVE" in msg.stop_reason  # Fallback check
             logger.info("%s", result)
 
-    await asyncio.sleep(1.0)
-    if success:
-        if not Path(output_file).exists():
-            logger.error("'%s' was not saved after approval.", output_file)
-            return False
-        try:
-            with open(output_file, "r", encoding="utf-8") as f:
-                content = f.read()
-                if not content.strip():
-                    logger.error("'%s' is empty despite approval.", output_file)
-                    return False
-                logger.file("Saved to %s: %s", output_file, content)
-        except Exception as e:
-            logger.error("Error reading '%s': %s", output_file, str(e))
-            return False
-        logger.file("%s approved and saved output to %s.", pair_name, output_file)
-        return True
-    else:
+    await asyncio.sleep(1.0)  # Brief pause for consistency
+    if not success:
         logger.warning(
             "%s did not approve registration %s.", pair_name, registration_id
         )
-        return False
+        return {"success": False, "json_output": None}
+
+    if not json_output:
+        logger.error(
+            "%s approved but no valid JSON output found from matcher.", pair_name
+        )
+        return {"success": False, "json_output": None}
+
+    logger.info("%s approved.", pair_name)
+    return {"success": True, "json_output": json_output}

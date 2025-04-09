@@ -1,3 +1,4 @@
+import json
 import time
 from pathlib import Path
 
@@ -29,7 +30,6 @@ async def run_workflow(
     configuration: str = "p1m1c1_p2m2c2",
 ):
     """Run the workflow for processing registrations with (matcher1-critic1) -> (matcher2-critic2) configuration."""
-    # Add configuration prefix to file paths
     stats_file = Path(stats_file)
     stats_file = (
         stats_file.parent / f"{configuration}_{business_line}_{model}_{stats_file.name}"
@@ -83,31 +83,36 @@ async def run_workflow(
         )
         message1 = (
             f"Matcher1: Match based on instructions in system prompt.\n"
-            f"SAVE the output to '{matches_file}' using save_json_tool.\n"
             f"REGISTRATION: ```{[registration]}```\n"
             f"OFFERS: ```{offers}```\n"
             f"Critic1: Review Matcher1's output and say 'APPROVE' if acceptable.\n"
         )
         start_time = time.time()
-        success1 = await process_pair(
+        result1 = await process_pair(
             pair=pair1,
             message=message1,
             registration_id=registration_id,
             pair_name="Pair 1 (Matcher1-Critic1)",
-            output_file=matches_file,
             logger=logger,
         )
         pair1_time = time.time() - start_time
         logger.info("Pair 1 execution time: %.3f seconds", pair1_time)
 
+        if not result1 or not result1["success"]:
+            logger.warning("Pair 1 failed for registration %s. Skipping.", i)
+            continue
+
+        # Save Pair 1 output from chat result (matcher's JSON)
+        json_output1 = result1["json_output"]
+        matches_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(matches_file, "w", encoding="utf-8") as f:
+            json.dump(json_output1, f, indent=2)
+        logger.file("Pair 1 saved output to %s: %s", matches_file, json_output1)
+
         # Save Pair 1 time
         update_execution_times(
             registration_id, pair1_time=pair1_time, stats_file=stats_file
         )
-
-        if not success1:
-            logger.warning("Pair 1 failed for registration %s. Skipping.", i)
-            continue
 
         matches = await read_json(matches_file)
         logger.debug("Current match for update: %s", matches)
@@ -143,7 +148,6 @@ async def run_workflow(
             continue
         message2 = (
             f"Matcher2: Enrich matches with pricing and subsidies:\n"
-            f"SAVE the output to '{pos_file}' using save_json_tool.\n"
             f"MATCHES: ```{[filtered_match]}```\n"
             f"OFFERS: ```{offers}```\n"
             f"Critic2: Review Matcher2's output and say 'APPROVE' if acceptable.\n"
@@ -155,23 +159,30 @@ async def run_workflow(
         )
 
         start_time = time.time()
-        success2 = await process_pair(
+        result2 = await process_pair(
             pair=pair2,
             message=message2,
             registration_id=registration_id,
             pair_name="Pair 2 (Matcher2-Critic2)",
-            output_file=pos_file,
             logger=logger,
         )
         pair2_time = time.time() - start_time
         logger.info("Pair 2 execution time: %.3f seconds", pair2_time)
 
+        if not result2 or not result2["success"]:
+            logger.warning("Pair 2 failed for registration %s. Continuing.", i)
+            continue
+
+        # Save Pair 2 output from chat result (matcher's JSON)
+        json_output2 = result2["json_output"]
+        pos_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(pos_file, "w", encoding="utf-8") as f:
+            json.dump(json_output2, f, indent=2)
+        logger.file("Pair 2 saved output to %s: %s", pos_file, json_output2)
+
         # Update with Pair 2 time
         update_execution_times(
             registration_id, pair2_time=pair2_time, stats_file=stats_file
         )
-
-        if not success2:
-            logger.warning("Pair 2 failed for registration %s. Continuing.", i)
 
     logger.info("Processed %s registrations successfully.", max_items)
