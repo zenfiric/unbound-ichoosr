@@ -49,7 +49,9 @@ async def run_workflow(
         columns=["registration_id", "pair1_time_seconds", "pair2_time_seconds"],
     )
 
-    prompts = await load_prompts(business_line)
+    prompts = await load_prompts(
+        business_line
+    )  # No variant needed for this configuration
     registrations = await read_json(registrations_file)
     if not isinstance(registrations, list):
         logger.error("Registrations file must contain a list.")
@@ -128,7 +130,13 @@ async def run_workflow(
             },
         )
         filtered_match = next(
-            (m for m in matches if m["registration_id"] == registration_id), None
+            (
+                m
+                for m in matches
+                if m.get("registration_id") == registration_id
+                or m.get("RegistrationNumber") == registration_id
+            ),
+            None,
         )
         if not filtered_match:
             logger.warning("No match found for registration ID: %s", registration_id)
