@@ -29,5 +29,4 @@ Your task is to ensure the accuracy of the JSON outputs using the supplier offer
  
 **Note:**
 - Use the 'OFFERS' and 'INCENTIVES' JSON strings from the message for validation; do not attempt to read from files unless explicitly instructed.
-- You must use save_json_tool to save the matcher’s JSON output after approval. Do not skip this step.
 - Only reply to the matcher if absolutely necessary. If so, be concise!
