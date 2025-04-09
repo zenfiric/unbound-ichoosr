@@ -1,3 +1,4 @@
+import json
 import time
 from pathlib import Path
 
@@ -29,7 +30,6 @@ async def run_workflow(
     configuration: str = "p1m1m2c",
 ):
     """Run the workflow for processing registrations with (matcher1-critic-matcher2) configuration."""
-    # Add configuration prefix to file paths
     stats_file = Path(stats_file)
     stats_file = (
         stats_file.parent / f"{configuration}_{business_line}_{model}_{stats_file.name}"
@@ -46,7 +46,11 @@ async def run_workflow(
 
     init_csv_file(
         stats_file=stats_file,
-        columns=["registration_id", "group_time_seconds"],
+        columns=[
+            "registration_id",
+            "matcher1_critic_time_seconds",
+            "matcher2_time_seconds",
+        ],
     )
 
     prompts = await load_prompts(business_line, variant="one_critic")
@@ -70,64 +74,116 @@ async def run_workflow(
             "Processing registration %s/%s (ID: %s)", i, max_items, registration_id
         )
 
-        # Single group with matcher1, critic, and matcher2
-        group = await get_agents(
+        # Phase 1: Matcher1 and Critic
+        group1 = await get_agents(
             model=model,
             stream=stream,
             prompts={
                 "matcher1": prompts["a_matcher"],
-                "critic": prompts["critic"],  # Single critic from one_critic variant
-                "matcher2": prompts["b_matcher"],
+                "critic": prompts["critic"],
             },
         )
-
-        # Message for the entire group
-        message = (
+        message1 = (
             f"Matcher1: Match based on instructions in system prompt.\n"
-            f"SAVE the output to '{matches_file}' using save_json_tool.\n"
             f"REGISTRATION: ```{[registration]}```\n"
             f"OFFERS: ```{offers}```\n"
             f"Critic: Review Matcher1's output and say 'APPROVE' if acceptable.\n"
-            f"Matcher2: After Critic approves, enrich matches with pricing and subsidies.\n"
-            f"SAVE the enriched output to '{pos_file}' using save_json_tool.\n"
-            f"OFFERS (updated after capacity): ```{offers}```\n"
         )
-        message += (
+        start_time = time.time()
+        result1 = await process_pair(
+            pair=group1,
+            message=message1,
+            registration_id=registration_id,
+            pair_name="Matcher1-Critic",
+            logger=logger,
+        )
+        matcher1_critic_time = time.time() - start_time
+        logger.info(
+            "Matcher1-Critic execution time: %.3f seconds", matcher1_critic_time
+        )
+
+        if not result1 or not result1["success"]:
+            logger.warning("Matcher1-Critic failed for registration %s. Skipping.", i)
+            continue
+
+        # Save Matcher1's output
+        matches_output = result1["json_output"]
+        matches_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(matches_file, "w", encoding="utf-8") as f:
+            json.dump(matches_output, f, indent=2)
+        logger.file("Matcher1 saved output to %s: %s", matches_file, matches_output)
+
+        # Update supplier capacity
+        matches = await read_json(matches_file)
+        logger.debug("Current match for update: %s", matches)
+        try:
+            result_capacity = await update_supplier_capacity(matches, offers_file)
+            logger.info("Capacity update: %s", result_capacity)
+            offers = await read_json(offers_file)
+            logger.debug("Updated offers: %s", offers)
+        except ValueError as e:
+            logger.error("Error updating capacity: %s", e)
+            continue
+
+        # Phase 2: Matcher2
+        group2 = await get_agents(
+            model=model,
+            stream=stream,
+            prompts={
+                "matcher2": prompts["b_matcher"],
+            },
+        )
+        filtered_match = next(
+            (
+                m
+                for m in matches
+                if m.get("registration_id") == registration_id
+                or m.get("RegistrationNumber") == registration_id
+            ),
+            None,
+        )
+        if not filtered_match:
+            logger.warning("No match found for registration ID: %s", registration_id)
+            continue
+        message2 = (
+            f"Matcher2: Enrich matches with pricing and subsidies:\n"
+            f"MATCHES: ```{[filtered_match]}```\n"
+            f"OFFERS: ```{offers}```\n"
+        )
+        message2 += (
             f"INCENTIVES: ```{incentives}```\n"
             if incentives
             else "INCENTIVES: Use fetch_incentives_tool to fetch incentives based on zip code.\n"
         )
 
         start_time = time.time()
-        success = await process_pair(
-            pair=group,
-            message=message,
+        result2 = await process_pair(
+            pair=group2,
+            message=message2,
             registration_id=registration_id,
-            pair_name="Matcher1-Critic-Matcher2 Group",
-            output_file=pos_file,  # Final output goes to pos_file
+            pair_name="Matcher2",
             logger=logger,
         )
-        group_time = time.time() - start_time
-        logger.info("Group execution time: %.3f seconds", group_time)
+        matcher2_time = time.time() - start_time
+        logger.info("Matcher2 execution time: %.3f seconds", matcher2_time)
 
+        if not result2 or not result2["success"]:
+            logger.warning("Matcher2 failed for registration %s. Continuing.", i)
+            continue
+
+        # Save Matcher2's output
+        pos_output = result2["json_output"]
+        pos_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(pos_file, "w", encoding="utf-8") as f:
+            json.dump(pos_output, f, indent=2)
+        logger.file("Matcher2 saved output to %s: %s", pos_file, pos_output)
+
+        # Update execution times
         update_execution_times(
-            registration_id, group_time=group_time, stats_file=stats_file
+            registration_id,
+            matcher1_critic_time=matcher1_critic_time,
+            matcher2_time=matcher2_time,
+            stats_file=stats_file,
         )
-
-        if not success:
-            logger.warning("Group processing failed for registration %s. Skipping.", i)
-            continue
-
-        # Update supplier capacity after matcher1 and critic but before matcher2's output
-        matches = await read_json(matches_file)
-        logger.debug("Current match for update: %s", matches)
-        try:
-            result = await update_supplier_capacity(matches, offers_file)
-            logger.info("Capacity update: %s", result)
-            offers = await read_json(offers_file)
-            logger.debug("Updated offers: %s", offers)
-        except ValueError as e:
-            logger.error("Error updating capacity: %s", e)
-            continue
 
     logger.info("Processed %s registrations successfully.", max_items)

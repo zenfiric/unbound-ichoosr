@@ -16,8 +16,6 @@ MODEL_NAME = "gpt-4o"
 
 # Constants
 MAX_ITEMS = 10
-
-# CSV file path
 EXECUTION_TIMES_CSV = "execution_times.csv"
 
 
@@ -25,10 +23,7 @@ def init_csv_file(stats_file: str = EXECUTION_TIMES_CSV, columns: list = None):
     """Initialize CSV file with headers if it doesn't exist."""
     if not os.path.exists(stats_file):
         if columns is None:
-            columns = [
-                "registration_id",
-                "group_time_seconds",
-            ]  # Default for single-group cases
+            columns = ["registration_id", "group_time_seconds"]
         df = pd.DataFrame(columns=columns)
         df.to_csv(stats_file, index=False)
 
@@ -41,11 +36,10 @@ def update_execution_times(
     pair2_time: float = None,
     matcher1_time: float = None,
     matcher2_time: float = None,
-):
+    matcher1_critic_time: float = None,  # Added for p1m1m2c
+) -> None:
     """Update execution times in CSV file using pandas with flexible time arguments."""
-    # Read existing data or initialize if file doesn't exist
     if not os.path.exists(stats_file):
-        # Default columns based on provided arguments
         columns = ["registration_id"]
         if group_time is not None:
             columns.append("group_time_seconds")
@@ -57,13 +51,13 @@ def update_execution_times(
             columns.append("matcher1_time_seconds")
         if matcher2_time is not None:
             columns.append("matcher2_time_seconds")
+        if matcher1_critic_time is not None:
+            columns.append("matcher1_critic_time_seconds")
         init_csv_file(stats_file, columns=columns)
 
     df = pd.read_csv(stats_file)
 
-    # Check if registration_id exists
     if registration_id in df["registration_id"].values:
-        # Update existing row
         if group_time is not None and "group_time_seconds" in df.columns:
             df.loc[df["registration_id"] == registration_id, "group_time_seconds"] = (
                 f"{group_time:.3f}"
@@ -84,8 +78,14 @@ def update_execution_times(
             df.loc[
                 df["registration_id"] == registration_id, "matcher2_time_seconds"
             ] = f"{matcher2_time:.3f}"
+        if (
+            matcher1_critic_time is not None
+            and "matcher1_critic_time_seconds" in df.columns
+        ):
+            df.loc[
+                df["registration_id"] == registration_id, "matcher1_critic_time_seconds"
+            ] = f"{matcher1_critic_time:.3f}"
     else:
-        # Add new row
         new_row = {"registration_id": registration_id}
         if group_time is not None:
             new_row["group_time_seconds"] = f"{group_time:.3f}"
@@ -97,9 +97,10 @@ def update_execution_times(
             new_row["matcher1_time_seconds"] = f"{matcher1_time:.3f}"
         if matcher2_time is not None:
             new_row["matcher2_time_seconds"] = f"{matcher2_time:.3f}"
+        if matcher1_critic_time is not None:
+            new_row["matcher1_critic_time_seconds"] = f"{matcher1_critic_time:.3f}"
         df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
 
-    # Save updated dataframe
     df.to_csv(stats_file, index=False)
 
 
@@ -147,7 +148,7 @@ async def run_with_backoff(
 async def process_pair(
     pair, message: str, registration_id: str, pair_name: str, logger: Logger
 ) -> dict[str, Any]:
-    """Process a pair or group, return success and JSON output from matcher."""
+    """Process a pair or group, return success and JSON output(s) from matcher(s)."""
     if count_tokens(message) > TOKEN_LIMIT:
         logger.warning(
             "Message for %s exceeds %d tokens. Truncating...", pair_name, TOKEN_LIMIT
@@ -158,6 +159,10 @@ async def process_pair(
     success = False
     matcher_output = ""
     json_output = None
+    is_group = "Matcher1-Critic-Matcher2" in pair_name  # Detect p1m1m2c
+    matcher1_output = ""
+    matcher2_output = ""
+    json_outputs = {"matches": None, "pos": None} if is_group else None
 
     async for msg in run_with_backoff(
         pair, [TextMessage(content=message, source="user")], logger=logger
@@ -166,42 +171,82 @@ async def process_pair(
             if msg.source == "user":
                 logger.debug("User: %s", msg.content[:100])
             elif "matcher" in msg.source.lower():
-                logger.info("matcher: %s", msg.content)
-                matcher_output += msg.content
-                # Extract JSON from matcher's output
-                try:
-                    json_start = matcher_output.find("```json") + 7
-                    json_end = matcher_output.rfind("```")
-                    if json_start > 6 and json_end > json_start:
-                        json_str = matcher_output[json_start:json_end].strip()
-                        json_output = json.loads(json_str)
-                except json.JSONDecodeError as e:
-                    logger.error("Failed to parse JSON from matcher output: %s", e)
+                if is_group and "matcher1" in msg.source.lower():
+                    logger.info("matcher1: %s", msg.content)
+                    matcher1_output += msg.content
+                    try:
+                        json_start = matcher1_output.find("```json") + 7
+                        json_end = matcher1_output.rfind("```")
+                        if json_start > 6 and json_end > json_start:
+                            json_str = matcher1_output[json_start:json_end].strip()
+                            json_outputs["matches"] = json.loads(json_str)
+                    except json.JSONDecodeError as e:
+                        logger.error("Failed to parse JSON from Matcher1 output: %s", e)
+                elif is_group and "matcher2" in msg.source.lower():
+                    logger.info("matcher2: %s", msg.content)
+                    matcher2_output += msg.content
+                    try:
+                        json_start = matcher2_output.find("```json") + 7
+                        json_end = matcher2_output.rfind("```")
+                        if json_start > 6 and json_end > json_start:
+                            json_str = matcher2_output[json_start:json_end].strip()
+                            json_outputs["pos"] = json.loads(json_str)
+                            success = True  # Success after Matcher2 in group
+                    except json.JSONDecodeError as e:
+                        logger.error("Failed to parse JSON from Matcher2 output: %s", e)
+                else:  # Single matcher case (p1m1c1_p2m2c2, p1m1_p2m1)
+                    logger.info("matcher: %s", msg.content)
+                    matcher_output += msg.content
+                    try:
+                        json_start = matcher_output.find("```json") + 7
+                        json_end = matcher_output.rfind("```")
+                        if json_start > 6 and json_end > json_start:
+                            json_str = matcher_output[json_start:json_end].strip()
+                            json_output = json.loads(json_str)
+                            success = True  # Success if JSON parsed (no critic case)
+                    except json.JSONDecodeError as e:
+                        logger.error("Failed to parse JSON from matcher output: %s", e)
             elif "critic" in msg.source.lower():
                 logger.info("critic: %s", msg.content)
                 if "APPROVE" in msg.content.upper():
-                    success = True
+                    success = (
+                        True if not is_group else False
+                    )  # APPROVE alone not enough for group
             else:
                 logger.info("%s: %s", msg.source, msg.content)
         elif isinstance(msg, TaskResult):
             result = f"{pair_name} completed."
             if msg.stop_reason:
                 result += f" Stop reason: {msg.stop_reason}"
-                success = success or "APPROVE" in msg.stop_reason  # Fallback check
+                if "APPROVE" in msg.stop_reason:
+                    success = (
+                        True
+                        if not is_group
+                        else (json_outputs["matches"] and json_outputs["pos"])
+                    )
             logger.info("%s", result)
 
-    await asyncio.sleep(1.0)  # Brief pause for consistency
+    await asyncio.sleep(1.0)
     if not success:
         logger.warning(
-            "%s did not approve registration %s.", pair_name, registration_id
+            "%s did not complete successfully for registration %s.",
+            pair_name,
+            registration_id,
         )
         return {"success": False, "json_output": None}
 
-    if not json_output:
-        logger.error(
-            "%s approved but no valid JSON output found from matcher.", pair_name
-        )
-        return {"success": False, "json_output": None}
-
-    logger.info("%s approved.", pair_name)
-    return {"success": True, "json_output": json_output}
+    if is_group:
+        if not json_outputs["matches"]:
+            logger.error("%s failed: No valid JSON output from Matcher1.", pair_name)
+            return {"success": False, "json_output": None}
+        if not json_outputs["pos"]:
+            logger.error("%s failed: No valid JSON output from Matcher2.", pair_name)
+            return {"success": False, "json_output": None}
+        logger.info("%s completed successfully.", pair_name)
+        return {"success": True, "json_output": json_outputs}
+    else:
+        if not json_output:
+            logger.error("%s failed: No valid JSON output from matcher.", pair_name)
+            return {"success": False, "json_output": None}
+        logger.info("%s completed successfully.", pair_name)
+        return {"success": True, "json_output": json_output}
