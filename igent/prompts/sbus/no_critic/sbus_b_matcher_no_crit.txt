@@ -37,5 +37,3 @@ Return only this JSON format:
   "eligible_subsidies": ["<incentive_name>", ...],
   "payment_type": "<payment_methods>"
 }]
-Note:
-You must use save_json_tool to save the JSON output. Do not skip this step.

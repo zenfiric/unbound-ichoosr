@@ -34,6 +34,3 @@ Output: Return only this JSON format and save:
   "battery_name": <battery_name>,
   "battery_capacity": <battery_capacity>
 }]
-
-**Note:**
-You must use save_json_tool to save the JSON output. Do not skip this step.
