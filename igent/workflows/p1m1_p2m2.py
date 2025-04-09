@@ -1,3 +1,4 @@
+import json
 import time
 from pathlib import Path
 
@@ -29,7 +30,6 @@ async def run_workflow(
     configuration: str = "p1m1_p2m1",
 ):
     """Run the workflow for processing registrations with (matcher1) -> (matcher2) configuration."""
-    # Add configuration prefix to file paths
     stats_file = Path(stats_file)
     stats_file = (
         stats_file.parent / f"{configuration}_{business_line}_{model}_{stats_file.name}"
@@ -80,30 +80,35 @@ async def run_workflow(
         )
         message1 = (
             f"Match based on instructions in system prompt.\n"
-            f"SAVE the output to '{matches_file}' using save_json_tool.\n"
             f"REGISTRATION: ```{[registration]}```\n"
             f"OFFERS: ```{offers}```\n"
         )
         start_time = time.time()
-        success1 = await process_pair(
+        result1 = await process_pair(
             pair=matcher1,
             message=message1,
             registration_id=registration_id,
             pair_name="Matcher 1",
-            output_file=matches_file,
             logger=logger,
         )
         matcher1_time = time.time() - start_time
         logger.info("Matcher 1 execution time: %.3f seconds", matcher1_time)
 
+        if not result1 or not result1["success"]:
+            logger.warning("Matcher 1 failed for registration %s. Skipping.", i)
+            continue
+
+        # Save Matcher 1 output from chat result
+        json_output1 = result1["json_output"]
+        matches_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(matches_file, "w", encoding="utf-8") as f:
+            json.dump(json_output1, f, indent=2)
+        logger.file("Matcher 1 saved output to %s: %s", matches_file, json_output1)
+
         # Save Matcher 1 time
         update_execution_times(
             registration_id, matcher1_time=matcher1_time, stats_file=stats_file
         )
-
-        if not success1:
-            logger.warning("Matcher 1 failed for registration %s. Skipping.", i)
-            continue
 
         matches = await read_json(matches_file)
         logger.debug("Current match for update: %s", matches)
@@ -125,14 +130,19 @@ async def run_workflow(
             },
         )
         filtered_match = next(
-            (m for m in matches if m["registration_id"] == registration_id), None
+            (
+                m
+                for m in matches
+                if m.get("registration_id") == registration_id
+                or m.get("RegistrationNumber") == registration_id
+            ),
+            None,
         )
         if not filtered_match:
             logger.warning("No match found for registration ID: %s", registration_id)
             continue
         message2 = (
             f"Enrich matches with pricing and subsidies:\n"
-            f"SAVE the output to '{pos_file}' using save_json_tool.\n"
             f"MATCHES: ```{[filtered_match]}```\n"
             f"OFFERS: ```{offers}```\n"
         )
@@ -143,23 +153,30 @@ async def run_workflow(
         )
 
         start_time = time.time()
-        success2 = await process_pair(
+        result2 = await process_pair(
             pair=matcher2,
             message=message2,
             registration_id=registration_id,
             pair_name="Matcher 2",
-            output_file=pos_file,
             logger=logger,
         )
         matcher2_time = time.time() - start_time
         logger.info("Matcher 2 execution time: %.3f seconds", matcher2_time)
 
+        if not result2 or not result2["success"]:
+            logger.warning("Matcher 2 failed for registration %s. Continuing.", i)
+            continue
+
+        # Save Matcher 2 output from chat result
+        json_output2 = result2["json_output"]
+        pos_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(pos_file, "w", encoding="utf-8") as f:
+            json.dump(json_output2, f, indent=2)
+        logger.file("Matcher 2 saved output to %s: %s", pos_file, json_output2)
+
         # Update with Matcher 2 time
         update_execution_times(
             registration_id, matcher2_time=matcher2_time, stats_file=stats_file
         )
-
-        if not success2:
-            logger.warning("Matcher 2 failed for registration %s. Continuing.", i)
 
     logger.info("Processed %s registrations successfully.", max_items)
