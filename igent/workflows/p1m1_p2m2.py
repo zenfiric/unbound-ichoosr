@@ -26,21 +26,30 @@ async def run_workflow(
     pos_file: str = "pos.json",
     max_items: int = MAX_ITEMS,
     stats_file: str = EXECUTION_TIMES_CSV,
+    configuration: str = "p1m1_p2m1",
 ):
     """Run the workflow for processing registrations with (matcher1) -> (matcher2) configuration."""
+    # Add configuration prefix to file paths
     stats_file = Path(stats_file)
-    stats_file = stats_file.parent / f"{business_line}_{model}_{stats_file.name}"
+    stats_file = (
+        stats_file.parent / f"{configuration}_{business_line}_{model}_{stats_file.name}"
+    )
     matches_file = Path(matches_file)
-    matches_file = matches_file.parent / f"{business_line}_{model}_{matches_file.name}"
+    matches_file = (
+        matches_file.parent
+        / f"{configuration}_{business_line}_{model}_{matches_file.name}"
+    )
     pos_file = Path(pos_file)
-    pos_file = pos_file.parent / f"{business_line}_{model}_{pos_file.name}"
+    pos_file = (
+        pos_file.parent / f"{configuration}_{business_line}_{model}_{pos_file.name}"
+    )
 
     init_csv_file(
         stats_file=stats_file,
         columns=["registration_id", "matcher1_time_seconds", "matcher2_time_seconds"],
     )
 
-    prompts = await load_prompts(business_line)
+    prompts = await load_prompts(business_line, variant="no_critic")
     registrations = await read_json(registrations_file)
     if not isinstance(registrations, list):
         logger.error("Registrations file must contain a list.")

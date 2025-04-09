@@ -22,6 +22,7 @@ async def get_agents(
 
     agents = []
     has_critic = False
+    matcher_sources = []
 
     # Create agents based on prompts dictionary
     for agent_name, prompt in prompts.items():
@@ -32,10 +33,16 @@ async def get_agents(
         if "matcher2" in agent_name:
             tools.append(fetch_incentives_tool)
 
+        # Append instruction to say "APPROVE" when done
+        updated_prompt = (
+            f"{prompt}\n\nWhen you have completed your task and saved the output, "
+            f"say 'APPROVE' to indicate completion."
+        )
+
         agent = AssistantAgent(
             name=agent_name,
             model_client=model_client,
-            system_message=prompt,
+            system_message=updated_prompt,
             tools=tools,
             model_client_stream=stream,
             reflect_on_tool_use=True,
@@ -43,6 +50,8 @@ async def get_agents(
         agents.append(agent)
         if "critic" in agent_name.lower():
             has_critic = True
+        elif "matcher" in agent_name.lower():
+            matcher_sources.append(agent_name)
 
     if not agents:
         raise ValueError("No valid agents created from prompts")
@@ -64,10 +73,25 @@ async def get_agents(
                 "APPROVE", sources=["critic2"]
             ) | MaxMessageTermination(max_messages=10)
         else:
-            terminations = MaxMessageTermination(max_messages=len(agents) * 3)
+            # Single critic (e.g., "critic" for one_critic variant)
+            critic_source = next(
+                (name for name in prompts if "critic" in name.lower()), None
+            )
+            terminations = TextMentionTermination(
+                "APPROVE", sources=[critic_source]
+            ) | MaxMessageTermination(max_messages=10)
     else:
-        # No critics, terminate after a few messages
-        terminations = MaxMessageTermination(max_messages=len(agents) * 2)
+        # No critics: terminate when all matchers say "APPROVE"
+        if len(matcher_sources) > 1:
+            terminations = (
+                TextMentionTermination("APPROVE", sources=[matcher_sources[0]])
+                & TextMentionTermination("APPROVE", sources=[matcher_sources[1]])
+                & MaxMessageTermination(max_messages=10)
+            )
+        else:
+            terminations = TextMentionTermination(
+                "APPROVE", sources=matcher_sources
+            ) | MaxMessageTermination(max_messages=10)
 
     group_chat = RoundRobinGroupChat(
         agents,

@@ -26,20 +26,30 @@ async def run_workflow(
     pos_file: str = "pos.json",
     max_items: int = MAX_ITEMS,
     stats_file: str = EXECUTION_TIMES_CSV,
+    configuration: str = "p1m1m2c",
 ):
     """Run the workflow for processing registrations with (matcher1-critic-matcher2) configuration."""
+    # Add configuration prefix to file paths
     stats_file = Path(stats_file)
-    stats_file = stats_file.parent / f"{business_line}_{model}_{stats_file.name}"
+    stats_file = (
+        stats_file.parent / f"{configuration}_{business_line}_{model}_{stats_file.name}"
+    )
     matches_file = Path(matches_file)
-    matches_file = matches_file.parent / f"{business_line}_{model}_{matches_file.name}"
+    matches_file = (
+        matches_file.parent
+        / f"{configuration}_{business_line}_{model}_{matches_file.name}"
+    )
     pos_file = Path(pos_file)
-    pos_file = pos_file.parent / f"{business_line}_{model}_{pos_file.name}"
-
-    init_csv_file(
-        stats_file=stats_file, columns=["registration_id", "group_time_seconds"]
+    pos_file = (
+        pos_file.parent / f"{configuration}_{business_line}_{model}_{pos_file.name}"
     )
 
-    prompts = await load_prompts(business_line)
+    init_csv_file(
+        stats_file=stats_file,
+        columns=["registration_id", "group_time_seconds"],
+    )
+
+    prompts = await load_prompts(business_line, variant="one_critic")
     registrations = await read_json(registrations_file)
     if not isinstance(registrations, list):
         logger.error("Registrations file must contain a list.")
@@ -66,7 +76,7 @@ async def run_workflow(
             stream=stream,
             prompts={
                 "matcher1": prompts["a_matcher"],
-                "critic": prompts["a_critic"],  # Using a_critic as the single critic
+                "critic": prompts["critic"],  # Single critic from one_critic variant
                 "matcher2": prompts["b_matcher"],
             },
         )
