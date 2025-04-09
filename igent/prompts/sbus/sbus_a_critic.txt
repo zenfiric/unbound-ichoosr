@@ -19,5 +19,4 @@ Receive JSON and ensure accuracy using the supplier offer data provided in the m
 
 **Note:**
 - Use the 'OFFERS' JSON string from the message for validation; do not attempt to read from a file unless explicitly instructed.
-- You must use save_json_tool to save the matcher’s JSON output after approval. Do not skip this step.
 - Only reply to the matcher if absolutely necessary. If so, be concise!
