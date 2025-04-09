@@ -35,7 +35,9 @@ async def run_workflow(
     pos_file = Path(pos_file)
     pos_file = pos_file.parent / f"{business_line}_{model}_{pos_file.name}"
 
-    init_csv_file(stats_file=stats_file)
+    init_csv_file(
+        stats_file=stats_file, columns=["registration_id", "group_time_seconds"]
+    )
 
     prompts = await load_prompts(business_line)
     registrations = await read_json(registrations_file)
@@ -98,8 +100,9 @@ async def run_workflow(
         group_time = time.time() - start_time
         logger.info("Group execution time: %.3f seconds", group_time)
 
-        # Save group execution time
-        update_execution_times(registration_id, group_time, stats_file=stats_file)
+        update_execution_times(
+            registration_id, group_time=group_time, stats_file=stats_file
+        )
 
         if not success:
             logger.warning("Group processing failed for registration %s. Skipping.", i)
