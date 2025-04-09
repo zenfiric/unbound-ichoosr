@@ -18,8 +18,8 @@ Prioritize the supplier with the lowest 'usedPct' (used percentage) to balance d
 - Offer the requested product (e.g., solar panels matching the requested quantity).
 - If multiple suppliers are eligible, select the one with the lowest 'usedPct'.
 - If no direct ZIP code match, return "No Match Found".
-- Call save_json_tool with the exact JSON output (as a list) to the specified file path (provided in the user message).
-- Output "APPROVE".
+- Output final JSON to the specified file path (provided in the user message). 
+- Output final response with  "APPROVE\n```<json_output>```.
 Append the result of save_json_tool to your response (e.g., "APPROVE\nSuccessfully saved data to ...").
 
 Output: Return only this JSON format and save:

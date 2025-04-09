@@ -23,10 +23,9 @@ Your task is to ensure the accuracy of the JSON outputs using the supplier offer
 - Extract the supplier offer data from the 'OFFERS' section and incentive data from the 'INCENTIVES' section of the user message (provided as JSON strings).
 - Validate the matcher’s JSON output against the rules using this data.
  If correct:
-Call save_json_tool with the exact JSON output from the matcher (as a list) to the specified file path (provided in the user message).
-Then, output "APPROVE".
-- Append the result of save_json_tool to your response (e.g., "APPROVE\nSuccessfully saved data to ...").
- If incorrect: Return short bullet-point feedback, no more than three items.
+   - Output final JSON to the specified file path (provided in the user message). 
+   - Output final response with  "APPROVE\n```<json_output>```.
+-  If incorrect: Return short bullet-point feedback, no more than three items.
  
 **Note:**
 - Use the 'OFFERS' and 'INCENTIVES' JSON strings from the message for validation; do not attempt to read from files unless explicitly instructed.

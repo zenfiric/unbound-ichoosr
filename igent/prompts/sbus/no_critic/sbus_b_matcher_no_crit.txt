@@ -16,8 +16,8 @@ Your task is to ensure that matches are enriched correctly based on ZIP code and
 - Match subsidies based on ZIP code and LMI eligibility.
 - Verify subsidy validity based on dates and community applicability.
 - Determine product price using supplier offer data and panel quantity.
-- Call save_json_tool with the exact enriched JSON output (as a list) to the specified file path (provided in the user message).
-- Output "APPROVE".
+- Output final JSON to the specified file path (provided in the user message). 
+- Output final response with  "APPROVE\n```<json_output>```.
 - Append the result of save_json_tool to your response (e.g., "APPROVE\nSuccessfully saved data to ...").
 
 **Output:** 
