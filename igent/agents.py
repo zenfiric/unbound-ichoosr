@@ -29,10 +29,6 @@ async def get_agents(
         if not prompt:
             continue
 
-        tools = [save_json_tool]
-        if "matcher2" in agent_name:
-            tools.append(fetch_incentives_tool)
-
         # Append instruction to say "APPROVE" when done
         updated_prompt = (
             f"{prompt}\n\nWhen you have completed your task and saved the output, "
@@ -43,7 +39,7 @@ async def get_agents(
             name=agent_name,
             model_client=model_client,
             system_message=updated_prompt,
-            tools=tools,
+            tools=[save_json_tool, fetch_incentives_tool],
             model_client_stream=stream,
             reflect_on_tool_use=True,
         )

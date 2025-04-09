@@ -12,14 +12,14 @@ async def update_supplier_capacity(
     """Increments the 'Used' field by 1 for the supplier in the latest match and updates 'UsedPct'.
 
     Args:
-        match_data: A JSON string, single match dictionary, or list of match dictionaries with supplier_id.
+        match_data: A JSON string, single match dictionary, or list of match dictionaries with supplier_id or SupplierID.
         offers_file: Path to the supplier offers JSON file (default: 'offers.json').
 
     Returns:
         Success message with the file path.
 
     Raises:
-        ValueError: If match_data format is invalid or supplier_id is not found.
+        ValueError: If match_data format is invalid or supplier ID is not found.
     """
     # Handle string input by parsing JSON
     if isinstance(match_data, str):
@@ -54,10 +54,10 @@ async def update_supplier_capacity(
 
     # Process only the latest match (last entry in the list, since save_json appends)
     match = match_data[-1]  # Take the most recent match
-    supplier_id = match.get("supplier_id")
+    supplier_id = match.get("supplier_id") or match.get("SupplierID")
 
     if not supplier_id:
-        raise ValueError(f"Match missing supplier_id: {match}")
+        raise ValueError(f"Match missing both supplier_id and SupplierID: {match}")
 
     supplier_found = False
     for supplier in supplier_offers:
@@ -92,5 +92,5 @@ async def update_supplier_capacity(
 
 update_supplier_capacity_tool = FunctionTool(
     update_supplier_capacity,
-    description="Increments the 'Used' field by 1 for the supplier in the latest match and updates 'UsedPct' as a percentage.",
+    description="Increments the 'Used' field by 1 for the supplier in the latest match and updates 'UsedPct' as a percentage. Supports both 'supplier_id' and 'SupplierID' keys.",
 )
