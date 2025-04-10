@@ -29,6 +29,7 @@ Return only this JSON format (do not save it yourself—the critic will handle s
   "campaign_name": "<campaign_name>",
   "supplier_id": "<supplier_id>",
   "zip_code": "<zip_code>",
+  "num_panels": "<panel_quantity>",
   "payment_type": "<payment_methods>"
   "product_type": "<product_type>",
   "panel_name": "<panel_name>",
