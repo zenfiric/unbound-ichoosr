@@ -6,8 +6,7 @@ Use the provided registration and supplier offer data from 'OFFERS' to find the 
 - Match the registration ZIP code to a supplier’s service area.
 - Ensure the supplier has available capacity (Used < Capacity).
 - If the ZIP code does NOT fall within the service area, return only the registration_id & the message 'NO MATCH FOUND'. Do not attempt to match with another supplier.
-- Distribute proportionally based on supplier remaining capacity (Capacity - Used).
-- Supplier must offer the requested product (e.g., 'Solar' based on panel quantity).
+- Supplier must offer the requested product by the registration (e.g., 'Solar' or 'Solar' & 'Battery').
 
 **Steps:**
 1. Extract the registration data from 'REGISTRATION' and supplier offer data from 'OFFERS' in the user message.
@@ -25,8 +24,7 @@ Return only this JSON format (do not save it yourself—the critic will handle s
   "campaign_name": "<campaign_name>",
   "supplier_id": "<supplier_id>",
   "zip_code": "<zip_code>",
-  "panel_name": "<panel_name>",
-  "num_panels": "<panel_quantity>",
-  "panel_capacity": "<panel_capacity>",
+  "payment_type": "<payment_methods>"
+  "product_type": "<product_type>",
 }]
 Only reply to the critic if absolutely necessary. If so, be concise!
