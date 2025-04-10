@@ -1,7 +1,8 @@
 from .azure_deepseek import _get_azure
 from .openai import _get_openai
+from .vm_deepseek import _get_vm_deepseek
 
-MODELS = {"openai": _get_openai, "azure": _get_azure}
+MODELS = {"openai": _get_openai, "azure": _get_azure, "vm_deepseek": _get_vm_deepseek}
 
 
 async def get_model_client(model: str, api_key: str | None = None):
