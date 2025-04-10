@@ -42,6 +42,12 @@ async def load_prompts(biz_line: str, variant: str | None = None) -> dict[str, s
             prompts["critic"] = await read_txt(
                 str(base_path / "sbus_a_and_b_critic.txt")
             )
+        elif variant == "one_critic_no_mock" and biz_line == "sbus":
+            prompts["a_matcher"] = await read_txt(str(base_path / "sbus_a_matcher.txt"))
+            prompts["b_matcher"] = await read_txt(str(base_path / "sbus_b_matcher.txt"))
+            prompts["critic"] = await read_txt(
+                str(base_path / "sbus_a_and_b_critic.txt")
+            )
         else:
             # Default case: load top-level prompts for biz_line (enuk or sbus)
             prompts["a_matcher"] = await read_txt(
