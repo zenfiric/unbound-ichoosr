@@ -17,15 +17,13 @@ Enrich the input JSON and return only this format:
 	  "campaign_name": "<campaign_name>",
 	  "supplier_id": "<supplier_id>",
 	  "zip_code": "<zip_code>",
+	  "payment_type": "<payment_methods>"
+	  "product_type": "<product_type>",
 	  "panel_name": "<panel_name>",
 	  "panel_capacity": "<panel_capacity>",
-	  "battery_name": <battery_name>,
-	  "battery_capacity": <battery_capacity>,
 	  "num_panels": "<panel_quantity>",
-	  "product_type": "<product_type>",
 	  "product_price": "<cash_price>",
 	  "eligible_subsidies": ["<incentive_name>", ...],
-	  "payment_type": "<payment_methods>"
 	}]
 	```
 Only reply to the critic if absolutely necessary. If so, be concise!
