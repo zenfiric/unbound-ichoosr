@@ -26,5 +26,7 @@ Return only this JSON format (do not save it yourself—the critic will handle s
   "zip_code": "<zip_code>",
   "payment_type": "<payment_methods>"
   "product_type": "<product_type>",
+  "panel_name": "<panel_name>",
+	"panel_capacity": "<panel_capacity>",
 }]
 Only reply to the critic if absolutely necessary. If so, be concise!

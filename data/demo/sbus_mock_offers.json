@@ -4,8 +4,8 @@
     {
       "SupplierID": "All Energy Solar",
       "Capacity": 100,
-      "Used": 13,
-      "UsedPct": 0.13,
+      "Used": 17,
+      "UsedPct": 0.17,
       "InterestRate": 7.73,
       "LoanTermMonths": 360,
       "ServiceAreas": [
@@ -452,8 +452,8 @@
     {
       "SupplierID": "iSoalr",
       "Capacity": 100,
-      "Used": 12,
-      "UsedPct": 0.12,
+      "Used": 13,
+      "UsedPct": 0.13,
       "InterestRate": 7.73,
       "LoanTermMonths": 360,
       "ServiceAreas": [
@@ -919,8 +919,8 @@
     {
       "SupplierID": "TruNorthSolar",
       "Capacity": 100,
-      "Used": 11,
-      "UsedPct": 0.11,
+      "Used": 16,
+      "UsedPct": 0.16,
       "InterestRate": 7.73,
       "LoanTermMonths": 360,
       "ServiceAreas": [
