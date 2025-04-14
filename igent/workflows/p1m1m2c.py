@@ -15,6 +15,118 @@ from igent.utils import (
     update_runtime,
 )
 
+from .workflow import Workflow
+
+
+class Matcher1CriticMatcher2Workflow(Workflow):
+    """Workflow for Matcher1-Critic-Matcher2 configuration (p1m1m2c)."""
+
+    def _get_csv_columns(self) -> list[str]:
+        return [
+            "registration_id",
+            "matcher1_critic_time_seconds",
+            "matcher2_time_seconds",
+        ]
+
+    async def _process_registration(
+        self,
+        run_id: str,
+        registration: dict,
+        offers: list[dict],
+        incentives: list[dict] | None,
+    ) -> list[dict] | None:
+        # Phase 1: Matcher1 and Critic
+        group1 = await get_agents(
+            model=self.config.model,
+            stream=self.config.stream,
+            prompts={
+                "matcher1": self.prompts["a_matcher"],
+                "critic": self.prompts["critic"],
+            },
+        )
+        message1 = (
+            "Matcher1: Match based on instructions in system prompt.\n"
+            f"REGISTRATION: ```{[registration]}```\n"
+            f"OFFERS: ```{offers}```\n"
+            "Critic: Review Matcher1's output and say 'APPROVE' if acceptable.\n"
+        )
+        start_time = time.time()
+        result1 = await process_pair(
+            pair=group1,
+            message=message1,
+            run_id=run_id,
+            pair_name="Matcher1-Critic",
+            logger=logger,
+        )
+        t_matcher1_critic = time.time() - start_time
+        logger.info("Matcher1-Critic execution time: %.3f seconds", t_matcher1_critic)
+
+        if not result1 or not result1["success"]:
+            logger.warning(
+                "Matcher1-Critic failed for registration %s. Skipping.", run_id
+            )
+            return None
+
+        update_json_list(self.matches_file, result1["json_output"], logger)
+        matches = await read_json(self.matches_file)
+        offers = await self._update_capacity(matches, run_id)
+        if offers is None:
+            return None
+
+        # Phase 2: Matcher2
+        group2 = await get_agents(
+            model=self.config.model,
+            stream=self.config.stream,
+            prompts={"matcher2": self.prompts["b_matcher"]},
+        )
+        filtered_match = next(
+            (
+                m
+                for m in matches
+                if m.get("registration_id") == run_id
+                or m.get("RegistrationNumber") == run_id
+            ),
+            None,
+        )
+        if not filtered_match:
+            logger.warning("No match found for registration ID: %s", run_id)
+            return None
+
+        message2 = (
+            "Matcher2: Enrich matches with pricing and subsidies:\n"
+            f"MATCHES: ```{[filtered_match]}```\n"
+            f"OFFERS: ```{offers}```\n"
+        )
+        message2 += (
+            f"INCENTIVES: ```{incentives}```\n"
+            if incentives
+            else "INCENTIVES: Use fetch_incentives_tool to fetch incentives based on zip code.\n"
+        )
+
+        start_time = time.time()
+        result2 = await process_pair(
+            pair=group2,
+            message=message2,
+            run_id=run_id,
+            pair_name="Matcher2",
+            logger=logger,
+        )
+        t_matcher2 = time.time() - start_time
+        logger.info("Matcher2 execution time: %.3f seconds", t_matcher2)
+
+        if not result2 or not result2["success"]:
+            logger.warning("Matcher2 failed for registration %s. Continuing.", run_id)
+            return offers
+
+        update_json_list(self.pos_file, result2["json_output"], logger)
+        update_runtime(
+            run_id,
+            t_matcher1_critic=t_matcher1_critic,
+            t_matcher2=t_matcher2,
+            filepath=self.stats_file,
+        )
+        return offers
+
 
 async def run_workflow(
     model: str,

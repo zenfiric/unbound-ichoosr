@@ -14,6 +14,72 @@ from igent.utils import (
     update_runtime,
 )
 
+from .workflow import Workflow
+
+
+class Matcher1Critic1Matcher2Critic2Workflow(Workflow):
+    """Workflow for Matcher1-Critic1-Matcher2-Critic2 configuration (p1m1c1m2c2)."""
+
+    def _get_csv_columns(self) -> list[str]:
+        return ["registration_id", "group_time_seconds"]
+
+    async def _process_registration(
+        self,
+        run_id: str,
+        registration: dict,
+        offers: list[dict],
+        incentives: list[dict] | None,
+    ) -> list[dict] | None:
+        group = await get_agents(
+            model=self.config.model,
+            stream=self.config.stream,
+            prompts={
+                "matcher1": self.prompts["a_matcher"],
+                "critic1": self.prompts["a_critic"],
+                "matcher2": self.prompts["b_matcher"],
+                "critic2": self.prompts["b_critic"],
+            },
+        )
+        message = (
+            "Matcher1: Match based on instructions in system prompt.\n"
+            f"SAVE the output to '{self.matches_file}' using save_json_tool.\n"
+            f"REGISTRATION: ```{[registration]}```\n"
+            f"OFFERS: ```{offers}```\n"
+            "Critic1: Review Matcher1's output and say 'APPROVE' if acceptable.\n"
+            "Matcher2: After Critic1 approves, enrich matches with pricing and subsidies.\n"
+            f"SAVE the enriched output to '{self.pos_file}' using save_json_tool.\n"
+            f"OFFERS (updated after capacity): ```{offers}```\n"
+            "Critic2: Review Matcher2's output and say 'APPROVE' if acceptable.\n"
+        )
+        message += (
+            f"INCENTIVES: ```{incentives}```\n"
+            if incentives
+            else "INCENTIVES: Use fetch_incentives_tool to fetch incentives based on zip code.\n"
+        )
+
+        start_time = time.time()
+        success = await process_pair(
+            pair=group,
+            message=message,
+            run_id=run_id,
+            pair_name="Matcher1-Critic1-Matcher2-Critic2 Group",
+            logger=logger,
+        )
+        t_group = time.time() - start_time
+        logger.info("Group execution time: %.3f seconds", t_group)
+
+        update_runtime(run_id, t_group=t_group, filepath=self.stats_file)
+
+        if not success:
+            logger.warning(
+                "Group processing failed for registration %s. Skipping.", run_id
+            )
+            return None
+
+        matches = await read_json(self.matches_file)
+        offers = await self._update_capacity(matches, run_id)
+        return offers
+
 
 async def run_workflow(
     model: str,
@@ -92,7 +158,6 @@ async def run_workflow(
             message=message,
             run_id=run_id,
             pair_name="Matcher1-Critic1-Matcher2-Critic2 Group",
-            output_file=pos_file,  # Final output goes to pos_file
             logger=logger,
         )
         t_group = time.time() - start_time
