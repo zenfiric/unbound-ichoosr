@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Literal
 
 from igent.logging_config import logger
 from igent.prompts import load_prompts
@@ -18,14 +18,14 @@ class WorkflowConfig:
     business_line: str = "sbus"
     registrations_file: str = "registrations.json"
     offers_file: str = "offers.json"
-    incentives_file: Optional[str] = None
+    incentives_file: str | None = None
     matches_file: str = "matches.json"
     pos_file: str = "pos.json"
     stats_file: str = EXECUTION_TIMES_CSV
     max_items: int = MAX_ITEMS
     stream: bool = False
-    configuration: str = (
-        "p1m1m2c"  # Options: p1m1m2c, p1m1c1m2c2, p1m1c1_p2m2c2, p1m1_p2m2
+    constellation: Literal["p1m1m2c", "p1m1c1m2c2", "p1m1c1_p2m2c2", "p1m1_p2m2"] = (
+        "p1m1m2c"
     )
 
 
@@ -39,15 +39,15 @@ class Workflow(ABC):
         self.matches_file = self._construct_filepath(config.matches_file)
         self.pos_file = self._construct_filepath(config.pos_file)
 
-    def _construct_filepath(self, filename: str) -> Path:
+    def _construct_filepath(self, filename: str | Path) -> Path:
         """Construct a filepath with configuration, business line, and model prefix."""
         path = Path(filename)
         return (
             path.parent
-            / f"{self.config.business_line}_{self.config.configuration}_{self.config.model}_{path.name}"
+            / f"{self.config.business_line}_{self.config.constellation}_{self.config.model}_{path.name}"
         )
 
-    async def _load_data(self) -> Tuple[List[Dict], List[Dict], Optional[List[Dict]]]:
+    async def _load_data(self) -> tuple[list[dict], list[dict], list[dict] | None]:
         """Load registrations, offers, and incentives data."""
         registrations = await read_json(self.config.registrations_file)
         if not isinstance(registrations, list):
@@ -70,13 +70,13 @@ class Workflow(ABC):
         )
         variant = (
             "one_critic"
-            if self.config.configuration == "p1m1m2c"
-            else "no_critic" if self.config.configuration == "p1m1_p2m2" else None
+            if self.config.constellation == "p1m1m2c"
+            else "no_critic" if self.config.constellation == "p1m1_p2m2" else None
         )
         self.prompts = await load_prompts(self.config.business_line, variant=variant)
 
     @abstractmethod
-    def _get_csv_columns(self) -> List[str]:
+    def _get_csv_columns(self) -> list[str]:
         """Define CSV columns for runtime stats."""
         pass
 
@@ -111,16 +111,16 @@ class Workflow(ABC):
     async def _process_registration(
         self,
         run_id: str,
-        registration: Dict,
-        offers: List[Dict],
-        incentives: Optional[List[Dict]],
-    ) -> Optional[List[Dict]]:
+        registration: dict,
+        offers: list[dict],
+        incentives: list[dict] | None,
+    ) -> list[dict] | None:
         """Process a single registration."""
         pass
 
     async def _update_capacity(
-        self, matches: List[Dict], run_id: str
-    ) -> Optional[List[Dict]]:
+        self, matches: list[dict], run_id: str
+    ) -> list[dict] | None:
         """Update supplier capacity and reload offers."""
         logger.debug("Current match for update: %s", matches)
         try:

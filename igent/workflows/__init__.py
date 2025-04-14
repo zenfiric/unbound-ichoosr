@@ -14,9 +14,13 @@ async def run_workflow(**kwargs):
         "p1m1c1_p2m2c2": Matcher1Critic1Matcher2Critic2SequentialWorkflow,
         "p1m1_p2m2": Matcher1Matcher2Workflow,
     }
-    workflow_class = workflow_map.get(config.configuration)
+    workflow_class = workflow_map.get(config.constellation)
     if not workflow_class:
-        raise ValueError(f"Unknown configuration: {config.configuration}")
+        available_workflows = ", ".join(sorted(workflow_map.keys()))
+        raise ValueError(
+            f"Unknown configuration: '{config.constellation}'. "
+            f"Available configurations are: {available_workflows}"
+        )
     workflow = workflow_class(config)
     await workflow.run()
 

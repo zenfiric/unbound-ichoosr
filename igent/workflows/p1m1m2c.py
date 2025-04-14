@@ -139,14 +139,14 @@ async def run_workflow(
     pos_file: str = "pos.json",
     max_items: int = MAX_ITEMS,
     stats_file: str = EXECUTION_TIMES_CSV,
-    configuration: str = "p1m1m2c",
+    constellation: str = "p1m1m2c",
 ):
     """Run the workflow for processing registrations with (matcher1-critic-matcher2) configuration."""
-    stats_file = construct_file_path(stats_file, configuration, business_line, model)
+    stats_file = construct_file_path(stats_file, constellation, business_line, model)
     matches_file = construct_file_path(
-        matches_file, configuration, business_line, model
+        matches_file, constellation, business_line, model
     )
-    pos_file = construct_file_path(pos_file, configuration, business_line, model)
+    pos_file = construct_file_path(pos_file, constellation, business_line, model)
 
     init_csv(
         filepath=stats_file,
