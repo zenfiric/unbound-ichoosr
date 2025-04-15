@@ -46,7 +46,6 @@ def check_price_correctness(match, pos_data, supplier_offer):
         (p for p in pos_data if p.get("registration_id") == registration_id), None
     )
     if not pos_entry:
-        print(f"  No POS entry found for reg_id={registration_id}")
         return False
 
     num_panels = int(pos_entry.get("num_panels", 0))
@@ -54,40 +53,21 @@ def check_price_correctness(match, pos_data, supplier_offer):
     panel_name = pos_entry.get("panel_name", "")
     product_price = int(pos_entry.get("product_price", 0))
 
-    # Debug info
-    print(
-        f"Checking match: reg_id={registration_id}, supplier={pos_entry.get('supplier_id')}"
-    )
-    print(
-        f"  num_panels={num_panels}, product_type={product_type}, panel_name={panel_name}"
-    )
-    print(f"  product_price={product_price}")
-
     if not supplier_offer:
-        print("  No supplier offer found")
         return False
 
     for offer in supplier_offer.get("Offers", []):
         offer_product_type = offer.get("ProductType", "").lower()
         offer_product_name = offer.get("ProductName", "")
-        print(
-            f"  Checking offer: ProductType={offer_product_type}, ProductName={offer_product_name}"
-        )
 
         if offer_product_type == product_type and offer_product_name == panel_name:
             for price in offer.get("ProductPrices", []):
                 offer_quantity = int(price.get("Quantity", 0))
-                print(f"    Checking price: Quantity={offer_quantity}")
 
                 if offer_quantity == num_panels:
                     expected_price = int(price.get("CashPrice", 0))
-                    print(
-                        f"      expected_price={expected_price}, product_price={product_price}"
-                    )
                     if product_price == expected_price:
-                        print("      Price match found")
                         return True
-    print("  No price match found")
     return False
 
 
