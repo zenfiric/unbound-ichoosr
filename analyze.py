@@ -43,7 +43,6 @@ def check_price_correctness(
                         else price["LoanInstallment"]
                     )
                     if payment_type == "LoanInstallment":
-                        # For simplicity, check if LoanInstallment exists (not zero)
                         return price["LoanInstallment"] > 0
                     return product_price == expected_price
     return False
