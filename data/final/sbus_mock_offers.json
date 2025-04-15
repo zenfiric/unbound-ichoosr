@@ -3,7 +3,7 @@
   "SupplierOffers": [
     {
       "SupplierID": "All Energy Solar",
-      "Capacity": 100,
+      "Capacity": 7,
       "Used": 0,
       "UsedPct": 0.0,
       "InterestRate": 7.73,
@@ -425,7 +425,7 @@
     },
     {
       "SupplierID": "iSoalr",
-      "Capacity": 100,
+      "Capacity": 5,
       "Used": 0,
       "UsedPct": 0.0,
       "InterestRate": 7.73,
@@ -887,7 +887,7 @@
     },
     {
       "SupplierID": "TruNorthSolar",
-      "Capacity": 100,
+      "Capacity": 8,
       "Used": 0,
       "UsedPct": 0.0,
       "InterestRate": 7.73,
