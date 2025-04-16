@@ -1,0 +1,137 @@
+[
+  {
+    "registration_id": "SPUS55424",
+    "campaign_name": "Minnesota 1 Summer 2024",
+    "supplier_id": "All Energy Solar",
+    "zip_code": "55430",
+    "num_panels": "20",
+    "payment_type": "Cash",
+    "product_type": "Solar",
+    "panel_name": "Jinko 425",
+    "panel_capacity": "425",
+    "product_price": "23718",
+    "eligible_subsidies": [
+      "Federal Residential Clean Energy Credit (25D)"
+    ]
+  },
+  {
+    "registration_id": "SPUS63159",
+    "campaign_name": "Minnesota 1 Summer 2024",
+    "supplier_id": "All Energy Solar",
+    "zip_code": "55105",
+    "num_panels": "23",
+    "payment_type": "Cash",
+    "product_type": "Solar",
+    "panel_name": "Jinko 425",
+    "panel_capacity": "425",
+    "product_price": "26122",
+    "eligible_subsidies": [
+      "Federal Residential Clean Energy Credit (25D)"
+    ]
+  },
+  {
+    "registration_id": "SPUS56025",
+    "campaign_name": "Minnesota 1 Summer 2024",
+    "supplier_id": "iSoalr",
+    "zip_code": "55447",
+    "num_panels": "13",
+    "payment_type": "Cash",
+    "product_type": "Solar",
+    "panel_name": "Silfab HG",
+    "panel_capacity": "410",
+    "product_price": "16424",
+    "eligible_subsidies": [
+      "Federal Residential Clean Energy Credit (25D)"
+    ]
+  },
+  {
+    "registration_id": "SPUS55081",
+    "campaign_name": "Minnesota 1 Summer 2024",
+    "supplier_id": "TruNorthSolar",
+    "zip_code": "55419",
+    "num_panels": "9",
+    "payment_type": "Cash",
+    "product_type": "Solar",
+    "panel_name": "Q.Cells - Q.Tron BLK M-G2+ 420w",
+    "panel_capacity": "420",
+    "product_price": "12866",
+    "eligible_subsidies": [
+      "Federal Residential Clean Energy Credit (25D)"
+    ]
+  },
+  {
+    "registration_id": "SPUS47174",
+    "campaign_name": "Minnesota 1 Summer 2024",
+    "supplier_id": "iSoalr",
+    "zip_code": "55478",
+    "num_panels": "20",
+    "payment_type": "Cash",
+    "product_type": "Solar",
+    "panel_name": "Silfab HG",
+    "panel_capacity": "410",
+    "product_price": "22881",
+    "eligible_subsidies": [
+      "Federal Residential Clean Energy Credit (25D) for rooftop solar installation"
+    ]
+  },
+  {
+    "registration_id": "SPUS54863",
+    "campaign_name": "Minnesota 1 Summer 2024",
+    "supplier_id": "TruNorthSolar",
+    "zip_code": "55419",
+    "num_panels": "14",
+    "payment_type": "LoanInstallment",
+    "product_type": "Solar",
+    "panel_name": "Q.Cells - Q.Tron BLK M-G2+ 420w",
+    "panel_capacity": "420",
+    "product_price": "17833",
+    "eligible_subsidies": [
+      "Federal Residential Clean Energy Credit (25D)"
+    ]
+  },
+  {
+    "registration_id": "SPUS55969",
+    "campaign_name": "Minnesota 1 Summer 2024",
+    "supplier_id": "TruNorthSolar",
+    "zip_code": "55407",
+    "num_panels": "13",
+    "payment_type": "Low and Medium Income",
+    "product_type": "Solar",
+    "panel_name": "Q.Cells - Q.Tron BLK M-G2+ 420w",
+    "panel_capacity": "420",
+    "product_price": "16825",
+    "eligible_subsidies": [
+      "Federal Residential Clean Energy Credit (25D)"
+    ]
+  },
+  {
+    "registration_id": "SPUS61626",
+    "campaign_name": "Minnesota 1 Summer 2024",
+    "supplier_id": "All Energy Solar",
+    "zip_code": "55356",
+    "num_panels": "8",
+    "payment_type": "Cash",
+    "product_type": "Solar",
+    "panel_name": "Jinko 425",
+    "panel_capacity": "425",
+    "product_price": "12012",
+    "eligible_subsidies": [
+      "Federal Residential Clean Energy Credit (25D) - 30% tax credit for rooftop solar"
+    ]
+  },
+  {
+    "registration_id": "SPUS55791",
+    "campaign_name": "Minnesota 1 Summer 2024",
+    "supplier_id": "TruNorthSolar",
+    "zip_code": "55419",
+    "num_panels": "18",
+    "payment_type": "LoanInstallment",
+    "product_type": "Solar",
+    "panel_name": "Q.Cells - Q.Tron BLK M-G2+ 420w",
+    "panel_capacity": "420",
+    "product_price": "21635",
+    "eligible_subsidies": [
+      "Federal Residential Clean Energy Credit (25D)"
+    ]
+  }
+]
