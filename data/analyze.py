@@ -9,32 +9,34 @@ from collections import defaultdict
 def check_service_area(match, supplier_offer):
     """Check if the registration's zip code is in the supplier's service area."""
     zip_code = match.get("zip_code")
-    return (
-        zip_code in supplier_offer.get("ServiceAreas", []) if supplier_offer else False
-    )
+    if not supplier_offer:
+        return False, "No supplier offer found"
+    if zip_code not in supplier_offer.get("ServiceAreas", []):
+        return False, f"Zip code {zip_code} not in supplier's service area"
+    return True, ""
 
 
 def check_capacity_available(supplier_offer):
     """Check if the supplier has available capacity."""
-    return (
-        supplier_offer.get("Used", 0) < supplier_offer.get("Capacity", 0)
-        if supplier_offer
-        else False
-    )
+    if not supplier_offer:
+        return False, "No supplier offer found"
+    used = supplier_offer.get("Used", 0)
+    capacity = supplier_offer.get("Capacity", 0)
+    if used >= capacity:
+        return False, f"Supplier capacity exceeded (Used: {used}, Capacity: {capacity})"
+    return True, ""
 
 
 def check_product_offered(match, supplier_offer):
     """Check if the supplier offers the matched product."""
     product_type = match.get("product_type")
     panel_name = match.get("panel_name")
-    if supplier_offer:
-        for offer in supplier_offer.get("Offers", []):
-            if (
-                offer["ProductType"] == product_type
-                and offer["ProductName"] == panel_name
-            ):
-                return True
-    return False
+    if not supplier_offer:
+        return False, "No supplier offer found"
+    for offer in supplier_offer.get("Offers", []):
+        if offer["ProductType"] == product_type and offer["ProductName"] == panel_name:
+            return True, ""
+    return False, f"Product {product_type}:{panel_name} not offered by supplier"
 
 
 def check_price_correctness(match, pos_data, supplier_offer):
@@ -46,7 +48,7 @@ def check_price_correctness(match, pos_data, supplier_offer):
         (p for p in pos_data if p.get("registration_id") == registration_id), None
     )
     if not pos_entry:
-        return False
+        return False, f"No POS entry found for registration {registration_id}"
 
     num_panels = int(pos_entry.get("num_panels", 0))
     product_type = pos_entry.get("product_type", "").lower()
@@ -54,7 +56,7 @@ def check_price_correctness(match, pos_data, supplier_offer):
     product_price = int(pos_entry.get("product_price", 0))
 
     if not supplier_offer:
-        return False
+        return False, "No supplier offer found"
 
     for offer in supplier_offer.get("Offers", []):
         offer_product_type = offer.get("ProductType", "").lower()
@@ -67,21 +69,29 @@ def check_price_correctness(match, pos_data, supplier_offer):
                 if offer_quantity == num_panels:
                     expected_price = int(price.get("CashPrice", 0))
                     if product_price == expected_price:
-                        return True
-    return False
+                        return True, ""
+                    return (
+                        False,
+                        f"Price mismatch (Expected: {expected_price}, Got: {product_price})",
+                    )
+            return False, f"No price found for {num_panels} panels"
+    return False, f"Product {product_type}:{panel_name} not found in supplier offers"
 
 
 def check_subsidy_eligibility(match, registration, pos_data):
     """Check if the registration is eligible for subsidies."""
     product_type = match.get("product_type")
-    if registration and product_type == "Solar":
-        lmi = registration.get("Contact_LowMediumIncome", 0)
-        for po in pos_data:
-            if po.get("ProductType") == product_type and (
-                lmi == 0 or po.get("LMIAvailable", False)
-            ):
-                return True
-    return False
+    if not registration:
+        return False, "No registration found"
+    if product_type != "Solar":
+        return False, f"Product type {product_type} not eligible for subsidies"
+    lmi = registration.get("Contact_LowMediumIncome", 0)
+    for po in pos_data:
+        if po.get("ProductType") == product_type and (
+            lmi == 0 or po.get("LMIAvailable", False)
+        ):
+            return True, ""
+    return False, "No subsidy-eligible product found"
 
 
 def analyze_distribution(matches, registrations):
@@ -118,12 +128,13 @@ def analyze_distribution(matches, registrations):
             if shared_zip_registrations > 0
             else 0
         )
-        expected_proportion = expected_proportions.get(supplier_id, 0)
         distribution.append(
             {
                 "supplier_id": supplier_id,
                 "registrations": actual_count,
-                "expected_proportion": expected_proportion,
+                "expected_proportion": expected_proportions.get(
+                    supplier_id, 0
+                ),  # Fixed here
                 "actual_proportion": actual_proportion,
             }
         )
@@ -166,13 +177,14 @@ def analyze_registrations():
         print(f"Total matches loaded: {len(matches)}")
         print(f"Total POS entries loaded: {len(pos_data)}")
 
-        # Initialize counters
+        # Initialize counters and failure tracking
         total_registrations = len(matches)
         service_area_matches = 0
         capacity_available = 0
         product_offered = 0
         price_correct = 0
         subsidy_eligible = 0
+        failures = defaultdict(list)
 
         # Analyze each match
         for match in matches:
@@ -196,16 +208,35 @@ def analyze_registrations():
             )
 
             # Evaluate statistics
-            if check_service_area(match, supplier_offer):
+            result, reason = check_service_area(match, supplier_offer)
+            if result:
                 service_area_matches += 1
-            if check_capacity_available(supplier_offer):
+            else:
+                failures[registration_id].append(f"Service Area: {reason}")
+
+            result, reason = check_capacity_available(supplier_offer)
+            if result:
                 capacity_available += 1
-            if check_product_offered(match, supplier_offer):
+            else:
+                failures[registration_id].append(f"Capacity: {reason}")
+
+            result, reason = check_product_offered(match, supplier_offer)
+            if result:
                 product_offered += 1
-            if check_price_correctness(match, pos_data, supplier_offer):
+            else:
+                failures[registration_id].append(f"Product Offered: {reason}")
+
+            result, reason = check_price_correctness(match, pos_data, supplier_offer)
+            if result:
                 price_correct += 1
-            if check_subsidy_eligibility(match, registration, pos_data):
+            else:
+                failures[registration_id].append(f"Price: {reason}")
+
+            result, reason = check_subsidy_eligibility(match, registration, pos_data)
+            if result:
                 subsidy_eligible += 1
+            else:
+                failures[registration_id].append(f"Subsidy: {reason}")
 
         # Distribution analysis
         distribution, shared_zip_registrations = analyze_distribution(
@@ -242,6 +273,17 @@ def analyze_registrations():
             print(f"      Expected Proportion: {dist['expected_proportion']:.3f}")
             print(f"      Actual Proportion: {dist['actual_proportion']:.3f}")
         print(f"   Total Shared Zip Registrations: {shared_zip_registrations}")
+
+        # Print non-match details
+        print("\nNon-Match Details:")
+        print("-----------------")
+        if failures:
+            for reg_id, reasons in failures.items():
+                print(f"Registration {reg_id}:")
+                for reason in reasons:
+                    print(f"  - {reason}")
+        else:
+            print("No non-matches found")
 
     except FileNotFoundError as e:
         print(f"Error: Could not find file - {e}")
