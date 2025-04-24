@@ -247,7 +247,7 @@ async def run_workflow(
         message2 += (
             f"INCENTIVES: ```{incentives}```\n"
             if incentives
-            else "INCENTIVES: Use fetch_incentives_tool to fetch incentives based on zip code.\n"
+            else "No incentives provided.\n"
         )
 
         start_time = time.time()
