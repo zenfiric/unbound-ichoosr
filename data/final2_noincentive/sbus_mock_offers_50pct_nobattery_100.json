@@ -4,8 +4,8 @@
     {
       "SupplierID": "All Energy Solar",
       "Capacity": 70,
-      "Used": 36,
-      "UsedPct": 0.51,
+      "Used": 0,
+      "UsedPct": 0.0,
       "InterestRate": 7.73,
       "LoanTermMonths": 360,
       "ServiceAreas": [
@@ -57,27 +57,6 @@
         "55417"
       ],
       "Offers": [
-        {
-          "ProductType": "Battery",
-          "ProductName": "Tesla PW3",
-          "ProductCapacity": "13.5",
-          "ProductPrices": [
-            {
-              "Quantity": 1,
-              "CashPrice": 15444,
-              "LMICashPrice": 0,
-              "LoanInstallment": 0,
-              "LMILoanInstallment": 0
-            },
-            {
-              "Quantity": 2,
-              "CashPrice": 28078,
-              "LMICashPrice": 0,
-              "LoanInstallment": 0,
-              "LMILoanInstallment": 0
-            }
-          ]
-        },
         {
           "ProductType": "Solar",
           "ProductName": "Jinko 425",
@@ -447,8 +426,8 @@
     {
       "SupplierID": "iSoalr",
       "Capacity": 50,
-      "Used": 25,
-      "UsedPct": 0.5,
+      "Used": 0,
+      "UsedPct": 0.0,
       "InterestRate": 7.73,
       "LoanTermMonths": 360,
       "ServiceAreas": [
@@ -909,8 +888,8 @@
     {
       "SupplierID": "TruNorthSolar",
       "Capacity": 80,
-      "Used": 40,
-      "UsedPct": 0.5,
+      "Used": 0,
+      "UsedPct": 0.0,
       "InterestRate": 7.73,
       "LoanTermMonths": 360,
       "ServiceAreas": [
