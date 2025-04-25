@@ -1,0 +1,50 @@
+[
+  {
+    "registration_id": "SPUS55645",
+    "campaign_name": "Minnesota 1 Summer 2024",
+    "supplier_id": "iSoalr",
+    "zip_code": "55419",
+    "num_panels": "14",
+    "payment_type": "Loan",
+    "product_type": "Solar",
+    "panel_name": "Silfab HG",
+    "panel_capacity": "410"
+  },
+  {
+    "registration_id": "SPUS56307",
+    "campaign_name": "Minnesota 1 Summer 2024",
+    "supplier_id": "iSoalr",
+    "zip_code": "55447",
+    "num_panels": "28",
+    "payment_type": "<payment_methods>",
+    "product_type": "Solar",
+    "panel_name": "Silfab HG",
+    "panel_capacity": "410"
+  },
+  {
+    "registration_id": "SPUS46885",
+    "message": "NO MATCH FOUND"
+  },
+  {
+    "registration_id": "SPUS45829",
+    "campaign_name": "Minnesota 1 Summer 2024",
+    "supplier_id": "All Energy Solar",
+    "zip_code": "55410",
+    "num_panels": "23",
+    "payment_type": "CashPrice",
+    "product_type": "Solar",
+    "panel_name": "Jinko 425",
+    "panel_capacity": "425"
+  },
+  {
+    "registration_id": "SPUS55501",
+    "campaign_name": "Minnesota 1 Summer 2024",
+    "supplier_id": "All Energy Solar",
+    "zip_code": "55432",
+    "num_panels": "21",
+    "payment_type": "LoanInstallment",
+    "product_type": "Solar",
+    "panel_name": "Jinko 425",
+    "panel_capacity": "425"
+  }
+]

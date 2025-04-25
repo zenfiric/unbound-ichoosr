@@ -1,0 +1,36 @@
+[
+  {
+    "registration_id": "SPUS62039",
+    "campaign_name": "Minnesota 1 Summer 2024",
+    "supplier_id": "TruNorthSolar",
+    "zip_code": "55407",
+    "panel_name": "Q.Cells - Q.Tron BLK M-G2+ 420w",
+    "panel_capacity": "420",
+    "battery_name": null,
+    "battery_capacity": null,
+    "num_panels": "21",
+    "product_type": "Solar",
+    "product_price": "24349",
+    "eligible_subsidies": [
+      "Federal Residential Clean Energy Credit (25D)"
+    ],
+    "payment_type": "Cash"
+  },
+  {
+    "registration_id": "SPUS62160",
+    "campaign_name": "Minnesota 1 Summer 2024",
+    "supplier_id": "iSoalr",
+    "zip_code": "55407",
+    "panel_name": "Silfab HG",
+    "panel_capacity": "410",
+    "battery_name": null,
+    "battery_capacity": null,
+    "num_panels": "12",
+    "product_type": "Solar",
+    "product_price": "15444",
+    "eligible_subsidies": [
+      "Federal Residential Clean Energy Credit (25D)"
+    ],
+    "payment_type": "Cash"
+  }
+]

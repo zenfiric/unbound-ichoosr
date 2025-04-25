@@ -1,0 +1,24 @@
+[
+  {
+    "registration_id": "SPUS62039",
+    "campaign_name": "Minnesota 1 Summer 2024",
+    "supplier_id": "TruNorthSolar",
+    "zip_code": "55407",
+    "panel_name": "Q.Cells - Q.Tron BLK M-G2+ 420w",
+    "num_panels": "21",
+    "panel_capacity": "420",
+    "battery_name": null,
+    "battery_capacity": null
+  },
+  {
+    "registration_id": "SPUS62160",
+    "campaign_name": "Minnesota 1 Summer 2024",
+    "supplier_id": "iSoalr",
+    "zip_code": "55407",
+    "panel_name": "Silfab HG",
+    "num_panels": "12",
+    "panel_capacity": "410",
+    "battery_name": null,
+    "battery_capacity": null
+  }
+]
