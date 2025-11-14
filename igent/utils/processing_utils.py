@@ -107,6 +107,10 @@ async def process_pair(
                     )
                     if json_output is not None:
                         success = True
+                        # Early termination: We have valid JSON, no need to wait for APPROVE
+                        logger.debug(
+                            "Got valid JSON early, continuing to wait for APPROVE or completion"
+                        )
             elif "critic" in msg.source.lower():
                 logger.info("critic: %s", msg.content)
                 if "APPROVE" in msg.content.upper():

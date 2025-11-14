@@ -7,8 +7,8 @@ import yaml
 
 from igent.agents import get_agents
 from igent.logging_config import logger
-from igent.tools.read_json import read_json
-from igent.utils import process_pair, update_json_list, update_runtime
+from igent.utils import process_pair, update_runtime
+from igent.utils.batch_writer import AutoFlushBatchWriter
 from igent.utils.timing import Timer
 
 from .workflow import Workflow, WorkflowConfig
@@ -60,6 +60,7 @@ class ConfigurableWorkflow(Workflow):
         super().__init__(config)
         self.constellation = self._load_constellation_config()
         self._last_matches = []  # Store matches from phase 1 for phase 2
+        self._batch_writer = AutoFlushBatchWriter(batch_size=5)  # Batch file writes
 
     def _load_constellation_config(self) -> ConstellationConfig:
         """Load constellation configuration from YAML file."""
@@ -201,16 +202,19 @@ class ConfigurableWorkflow(Workflow):
                     # Determine output destination based on agent roles
                     agent_roles = [a["role"] for a in phase.agents]
 
-                    # First matcher phase outputs to matches
+                    # First matcher phase outputs to matches (batch write)
                     if any("matcher1" in role for role in agent_roles):
-                        update_json_list(self.matches_file, output_data, logger)
-                        self._last_matches = await read_json(self.matches_file)
+                        self._batch_writer.append(str(self.matches_file), output_data)
+                        # For immediate access, also update in-memory cache
+                        if not self._last_matches:
+                            self._last_matches = []
+                        self._last_matches.append(output_data)
 
-                    # Second matcher phase outputs to POS
+                    # Second matcher phase outputs to POS (batch write)
                     elif any("matcher2" in role for role in agent_roles):
-                        update_json_list(self.pos_file, output_data, logger)
+                        self._batch_writer.append(str(self.pos_file), output_data)
 
-                # Store file write timing
+                # Store file write timing (batch append is fast)
                 file_write_time = timer.timings.get(f"{phase.name}_file_write", 0)
                 timing_data[f"{phase.name}_file_write"] = file_write_time
 
@@ -234,6 +238,17 @@ class ConfigurableWorkflow(Workflow):
         logger.debug(timer.format_summary())
 
         return offers
+
+    async def run(self):
+        """Run the workflow with batch writing."""
+        await super().run()
+
+        # Flush any remaining batched writes
+        pending_count = self._batch_writer.get_pending_count()
+        if pending_count > 0:
+            logger.info(f"Flushing {pending_count} pending writes...")
+            written = await self._batch_writer.flush_all()
+            logger.info(f"Wrote {written} records to disk")
 
     def _build_phase_message(
         self,
