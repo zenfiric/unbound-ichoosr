@@ -1,5 +1,6 @@
 import asyncio
 import json
+import re
 from logging import Logger
 from typing import Any
 
@@ -52,7 +53,7 @@ async def process_pair(
     success = False
     matcher_output = ""
     json_output = None
-    is_group = "Matcher1-Critic-Matcher2" in pair_name  # Detect p1m1m2c
+    is_group = "Matcher1-Critic-Matcher2" in pair_name
     matcher1_output = ""
     matcher2_output = ""
     json_outputs = {"matches": None, "pos": None} if is_group else None
@@ -64,58 +65,48 @@ async def process_pair(
             if msg.source == "user":
                 logger.debug("User: %s", msg.content[:100])
             elif "matcher" in msg.source.lower():
+                content = msg.content
                 if is_group and "matcher1" in msg.source.lower():
-                    logger.info("matcher1: %s", msg.content)
-                    matcher1_output += msg.content
-                    try:
-                        json_start = matcher1_output.find("```json") + 7
-                        json_end = matcher1_output.rfind("```")
-                        if json_start > 6 and json_end > json_start:
-                            json_str = matcher1_output[json_start:json_end].strip()
-                            json_outputs["matches"] = json.loads(json_str)
-                    except json.JSONDecodeError as e:
-                        logger.error("Failed to parse JSON from Matcher1 output: %s", e)
+                    logger.info("matcher1: %s", content)
+                    matcher1_output += content
+                    json_outputs["matches"] = _extract_json_before_approve(
+                        matcher1_output, logger, "Matcher1"
+                    )
                 elif is_group and "matcher2" in msg.source.lower():
-                    logger.info("matcher2: %s", msg.content)
-                    matcher2_output += msg.content
-                    try:
-                        json_start = matcher2_output.find("```json") + 7
-                        json_end = matcher2_output.rfind("```")
-                        if json_start > 6 and json_end > json_start:
-                            json_str = matcher2_output[json_start:json_end].strip()
-                            json_outputs["pos"] = json.loads(json_str)
-                            success = True  # Success after Matcher2 in group
-                    except json.JSONDecodeError as e:
-                        logger.error("Failed to parse JSON from Matcher2 output: %s", e)
-                else:  # Single matcher case (p1m1c1_p2m2c2, p1m1_p2m1)
-                    logger.info("matcher: %s", msg.content)
-                    matcher_output += msg.content
-                    try:
-                        json_start = matcher_output.find("```json") + 7
-                        json_end = matcher_output.rfind("```")
-                        if json_start > 6 and json_end > json_start:
-                            json_str = matcher_output[json_start:json_end].strip()
-                            json_output = json.loads(json_str)
-                            success = True  # Success if JSON parsed (no critic case)
-                    except json.JSONDecodeError as e:
-                        logger.error("Failed to parse JSON from matcher output: %s", e)
+                    logger.info("matcher2: %s", content)
+                    matcher2_output += content
+                    json_outputs["pos"] = _extract_json_before_approve(
+                        matcher2_output, logger, "Matcher2"
+                    )
+                    if json_outputs["pos"] is not None:
+                        success = True
+                else:
+                    logger.info("matcher: %s", content)
+                    matcher_output += content
+                    json_output = _extract_json_before_approve(
+                        matcher_output, logger, "Matcher"
+                    )
+                    if json_output is not None:
+                        success = True
             elif "critic" in msg.source.lower():
                 logger.info("critic: %s", msg.content)
                 if "APPROVE" in msg.content.upper():
                     success = (
-                        True if not is_group else False
-                    )  # APPROVE alone not enough for group
+                        True
+                        if not is_group
+                        else (json_outputs["matches"] and json_outputs["pos"])
+                    )
             else:
                 logger.info("%s: %s", msg.source, msg.content)
         elif isinstance(msg, TaskResult):
             result = f"{pair_name} completed."
             if msg.stop_reason:
                 result += f" Stop reason: {msg.stop_reason}"
-                if "APPROVE" in msg.stop_reason:
+                if "APPROVE" in msg.stop_reason.upper():
                     success = (
                         True
                         if not is_group
-                        else (json_outputs["matches"] and json_outputs["pos"])
+                        else (json_outputs["1"] and json_outputs["pos"])
                     )
             logger.info("%s", result)
 
@@ -141,3 +132,78 @@ async def process_pair(
             return {"success": False, "json_output": None}
         logger.info("%s completed successfully.", pair_name)
         return {"success": True, "json_output": json_output}
+
+
+# === Helper Function ===
+def _extract_json_before_approve(output: str, logger, source_name: str):
+    """
+    Extracts JSON from output that may contain:
+      - ```json ... ```
+      - or plain JSON followed by APPROVE
+    Stops at the first 'APPROVE' (case-insensitive) to avoid including it.
+    """
+    if not output.strip():
+        return None
+
+    # Split output at the first occurrence of 'APPROVE' (case-insensitive)
+    approve_index = -1
+    for approve_variant in ["APPROVE", "approve", "Approve"]:
+        idx = output.upper().find(approve_variant)
+        if idx != -1 and (approve_index == -1 or idx < approve_index):
+            approve_index = idx
+
+    parse_content = output[:approve_index].strip() if approve_index != -1 else output
+
+    # Look for ```json ... ```
+    json_match = re.search(r"```json\s*(.*?)\s*```", parse_content, re.DOTALL)
+    if json_match:
+        json_str = json_match.group(1).strip()
+        try:
+            return json.loads(json_str)
+        except json.JSONDecodeError as e:
+            logger.error(
+                "Failed to parse JSON from %s (inside backticks): %s", source_name, e
+            )
+            return None
+
+    # Fallback: Try to parse the entire content before APPROVE as JSON (common in gpt-5)
+    try:
+        parsed = json.loads(parse_content)
+        if isinstance(parsed, (list, dict)):
+            return parsed
+    except json.JSONDecodeError:
+        pass
+
+    # Last resort: look for first [ or { and try to parse from there
+    start_idx = parse_content.find("[")
+    if start_idx == -1:
+        start_idx = parse_content.find("{")
+    if start_idx != -1:
+        try:
+            # Find matching closing bracket
+            json_str = _extract_braced_content(parse_content[start_idx:])
+            return json.loads(json_str)
+        except (json.JSONDecodeError, ValueError):
+            pass
+
+    logger.debug("%s: No valid JSON found in output (before APPROVE).", source_name)
+    return None
+
+
+def _extract_braced_content(s: str) -> str:
+    """Extract content between first { or [ and matching } or ]"""
+    if not s:
+        return s
+    start_char = s[0]
+    if start_char not in "[{":
+        return s
+    end_char = "}" if start_char == "{" else "]"
+    stack = 1
+    i = 1
+    while i < len(s) and stack > 0:
+        if s[i] == start_char:
+            stack += 1
+        elif s[i] == end_char:
+            stack -= 1
+        i += 1
+    return s[:i] if stack == 0 else s

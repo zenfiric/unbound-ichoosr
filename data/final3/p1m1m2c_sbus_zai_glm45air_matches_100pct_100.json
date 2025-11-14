@@ -1,0 +1,57 @@
+[
+  {
+    "registration_id": "SPUS55557",
+    "campaign_name": "Minnesota 1 Summer 2024",
+    "supplier_id": "iSoalr",
+    "zip_code": "55447",
+    "num_panels": "8",
+    "payment_type": "CashPrice",
+    "product_type": "Solar",
+    "panel_name": "Silfab HG",
+    "panel_capacity": "410"
+  },
+  {
+    "registration_id": "SPUS63654",
+    "campaign_name": "Minnesota 1 Summer 2024",
+    "supplier_id": "iSoalr",
+    "zip_code": "55407",
+    "num_panels": 36,
+    "payment_type": "CashPrice",
+    "product_type": "Solar",
+    "panel_name": "Silfab HG",
+    "panel_capacity": "410"
+  },
+  {
+    "registration_id": "SPUS53075",
+    "campaign_name": "Minnesota 1 Summer 2024",
+    "supplier_id": "iSoalr",
+    "zip_code": "55407",
+    "num_panels": 38,
+    "payment_type": "Loan",
+    "product_type": "Solar",
+    "panel_name": "Silfab HG",
+    "panel_capacity": "410"
+  },
+  {
+    "registration_id": "SPUS55016",
+    "campaign_name": "Minnesota 1 Summer 2024",
+    "supplier_id": "TruNorthSolar",
+    "zip_code": "55419",
+    "num_panels": 11,
+    "payment_type": "Cash, Loan",
+    "product_type": "Solar",
+    "panel_name": "Q.Cells - Q.Tron BLK M-G2+ 420w",
+    "panel_capacity": "420"
+  },
+  {
+    "registration_id": "SPUS55623",
+    "campaign_name": "Minnesota 1 Summer 2024",
+    "supplier_id": "iSoalr",
+    "zip_code": "55447",
+    "num_panels": "13",
+    "payment_type": "Loan",
+    "product_type": "Solar",
+    "panel_name": "Silfab HG",
+    "panel_capacity": "410"
+  }
+]
