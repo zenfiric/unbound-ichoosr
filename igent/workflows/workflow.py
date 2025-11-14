@@ -5,28 +5,89 @@ from typing import Literal
 
 from igent.logging_config import logger
 from igent.prompts import load_prompts
+from igent.tools.capacity_tracker import update_supplier_capacity
 from igent.tools.read_json import read_json
-from igent.tools.update_supplier_capacity import update_supplier_capacity
 from igent.utils import EXECUTION_TIMES_CSV, MAX_ITEMS, init_csv
 
 
 @dataclass
 class WorkflowConfig:
-    """Configuration for the workflow."""
+    """Configuration for the workflow.
+
+    Supports smart defaults that automatically construct file paths based on:
+    - data_dir: Base directory for all data files
+    - scenario: Name of the scenario (e.g., "overlap_only")
+
+    If data_dir and scenario are provided, individual file paths are auto-generated.
+    Otherwise, you can specify each file path explicitly for backward compatibility.
+    """
 
     model: str
-    business_line: str = "sbus"
-    registrations_file: str = "registrations.json"
-    offers_file: str = "offers.json"
-    incentives_file: str | None = None
-    matches_file: str = "matches.json"
-    pos_file: str = "pos.json"
-    stats_file: str = EXECUTION_TIMES_CSV
-    max_items: int = MAX_ITEMS
-    stream: bool = False
     constellation: Literal["p1m1m2c", "p1m1c1m2c2", "p1m1c1_p2m2c2", "p1m1_p2m2"] = (
         "p1m1m2c"
     )
+    business_line: str = "sbus"
+
+    # Smart defaults option 1: Use data_dir + scenario
+    data_dir: str | None = None  # e.g., "data/sbus"
+    scenario: str | None = None  # e.g., "overlap_only"
+
+    # Smart defaults option 2: Explicit paths (backward compatibility)
+    registrations_file: str | None = None
+    offers_file: str | None = None
+    incentives_file: str | None = None
+    capacity_file: str | None = None
+    matches_file: str | None = None
+    pos_file: str | None = None
+    stats_file: str | None = None
+
+    # Execution parameters
+    max_items: int = MAX_ITEMS
+    stream: bool = False
+
+    def __post_init__(self):
+        """Apply smart defaults for file paths if data_dir and scenario are provided."""
+        if self.data_dir and self.scenario:
+            # Auto-generate paths from data_dir + scenario
+            base = Path(self.data_dir)
+
+            if self.registrations_file is None:
+                self.registrations_file = str(
+                    base / "registrations" / f"{self.scenario}.json"
+                )
+
+            if self.offers_file is None:
+                self.offers_file = str(base / "offers" / "base_offers.json")
+
+            if self.capacity_file is None:
+                self.capacity_file = str(base / "capacity" / f"{self.scenario}.json")
+
+            if self.matches_file is None:
+                self.matches_file = str(
+                    base / "results" / f"{self.constellation}_matches.json"
+                )
+
+            if self.pos_file is None:
+                self.pos_file = str(base / "results" / f"{self.constellation}_pos.json")
+
+            if self.stats_file is None:
+                self.stats_file = str(
+                    base / "results" / f"{self.constellation}_stats.csv"
+                )
+
+        # Apply final defaults if still None
+        if self.registrations_file is None:
+            self.registrations_file = "registrations.json"
+        if self.offers_file is None:
+            self.offers_file = "offers.json"
+        if self.capacity_file is None:
+            self.capacity_file = "capacity.json"
+        if self.matches_file is None:
+            self.matches_file = "matches.json"
+        if self.pos_file is None:
+            self.pos_file = "pos.json"
+        if self.stats_file is None:
+            self.stats_file = EXECUTION_TIMES_CSV
 
 
 class Workflow(ABC):
@@ -129,7 +190,9 @@ class Workflow(ABC):
         """Update supplier capacity and reload offers."""
         logger.debug("Current match for update: %s", matches)
         try:
-            result = await update_supplier_capacity(matches, self.config.offers_file)
+            result = await update_supplier_capacity(
+                matches, self.config.offers_file, self.config.capacity_file
+            )
             logger.info("Capacity update: %s", result)
             offers = await read_json(self.config.offers_file)
             logger.debug("Updated offers: %s", offers)

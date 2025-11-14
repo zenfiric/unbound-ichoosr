@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Reset supplier capacity in offers files to 0.
+"""Reset supplier capacity tracking files to 0.
 
 This script resets the 'Used' and 'UsedPct' fields for all suppliers
-in an offers file to 0, preparing it for a fresh workflow run.
+in capacity tracking files to 0, preparing them for a fresh workflow run.
+
+Note: Capacity tracking is now separate from offers files. Offers files
+remain immutable and are not modified by this script.
 
 Usage:
-    python scripts/reset_capacity.py data/sbus/offers/base_offers.json
+    python scripts/reset_capacity.py data/sbus/capacity/capacity.json
     python scripts/reset_capacity.py --all
 """
 import argparse
@@ -13,47 +16,49 @@ import json
 from pathlib import Path
 
 
-def reset_capacity(offers_file: str) -> None:
-    """Reset capacity in an offers file to 0."""
-    with open(offers_file, "r") as f:
-        offers = json.load(f)
+def reset_capacity(capacity_file: str) -> None:
+    """Reset capacity in a capacity tracking file to 0."""
+    with open(capacity_file, "r") as f:
+        capacity_data = json.load(f)
 
-    if "SupplierOffers" not in offers:
-        print(f"❌ No 'SupplierOffers' found in {offers_file}")
+    if not isinstance(capacity_data, dict):
+        print(f"❌ Invalid capacity file format: {capacity_file}")
         return
 
-    for supplier in offers["SupplierOffers"]:
-        supplier["Used"] = 0
-        supplier["UsedPct"] = 0.0
+    # Reset all supplier capacities
+    for supplier_capacity in capacity_data.values():
+        if isinstance(supplier_capacity, dict):
+            supplier_capacity["Used"] = 0
+            supplier_capacity["UsedPct"] = 0.0
 
-    with open(offers_file, "w") as f:
-        json.dump(offers, f, indent=2)
+    with open(capacity_file, "w") as f:
+        json.dump(capacity_data, f, indent=2)
 
-    print(f"✓ Reset capacity in {offers_file}")
+    print(f"✓ Reset capacity in {capacity_file}")
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Reset supplier capacity to 0 in offers files"
+        description="Reset supplier capacity to 0 in capacity tracking files"
     )
     parser.add_argument(
         "files",
         nargs="*",
-        help="Offers files to reset (or use --all for all files)",
+        help="Capacity files to reset (or use --all for all files)",
     )
     parser.add_argument(
         "--all",
         action="store_true",
-        help="Reset all offers files in data/sbus/offers/",
+        help="Reset all capacity files in data/sbus/capacity/",
     )
 
     args = parser.parse_args()
 
     if args.all:
-        offers_dir = Path("data/sbus/offers")
-        files = list(offers_dir.glob("*.json"))
+        capacity_dir = Path("data/sbus/capacity")
+        files = list(capacity_dir.glob("*.json"))
         if not files:
-            print("No offers files found in data/sbus/offers/")
+            print("No capacity files found in data/sbus/capacity/")
             return
     elif args.files:
         files = [Path(f) for f in args.files]

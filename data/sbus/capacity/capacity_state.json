@@ -14,6 +14,8 @@
       "capacity": 100,
       "used": 0,
       "used_pct": 0.0
-    }
+    },
+    "Used": 0,
+    "UsedPct": 0.0
   }
 }

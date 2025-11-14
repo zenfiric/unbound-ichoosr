@@ -181,14 +181,21 @@ async def run_workflow_from_scenario(
         ...     max_items=10
         ... )
     """
+    from pathlib import Path
+
     from igent.workflows import run_workflow as unified_run_workflow
 
     scenario = load_scenario(scenario_file)
+
+    # Extract scenario name from filename (e.g., "overlap_only.yaml" -> "overlap_only")
+    scenario_name = Path(scenario_file).stem
 
     await unified_run_workflow(
         model=model,
         stream=stream,
         business_line="sbus",  # Extract from scenario if needed
+        data_dir="data/sbus",
+        scenario=scenario_name,
         registrations_file=scenario["registrations"],
         offers_file=scenario["offers"],
         matches_file=scenario["output"]["matches"],
