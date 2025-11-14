@@ -1,0 +1,15 @@
+# Scenario: Subset with All Energy Solar missing battery products
+# Description: 41 registrations with one supplier (All Energy Solar) having no battery offerings
+# This tests the matcher's behavior when a supplier has limited product availability
+
+name: "No Battery Scenario"
+description: "41 registrations, All Energy Solar has NO battery products"
+
+registrations: "registrations/subset_41.json"
+offers: "offers/base_offers_no_aes_battery.json"
+capacity: "capacity/capacity_state.json"
+
+output:
+  matches: "results/no_battery_matches.json"
+  pos: "results/no_battery_pos.json"
+  stats: "results/no_battery_stats.csv"

@@ -2,6 +2,7 @@ from .csv_utils import EXECUTION_TIMES_CSV, init_csv, update_runtime
 from .file_paths import construct_file_path
 from .json_utils import update_json_list
 from .processing_utils import process_pair, run_with_backoff
+from .scenario_utils import list_scenarios, load_scenario
 from .token_utils import MODEL_NAME, TOKEN_LIMIT, count_tokens, truncate_message
 
 # Constants
@@ -19,5 +20,7 @@ __all__ = [
     "update_json_list",
     "process_pair",
     "run_with_backoff",
+    "load_scenario",
+    "list_scenarios",
     "MAX_ITEMS",
 ]

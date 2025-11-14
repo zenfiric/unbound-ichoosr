@@ -6,6 +6,7 @@ from igent.tools.read_json import read_json
 from igent.utils import (
     EXECUTION_TIMES_CSV,
     MAX_ITEMS,
+    load_scenario,
     process_pair,
     update_json_list,
     update_runtime,
@@ -151,3 +152,42 @@ async def run_workflow(
     )
     workflow = Matcher1CriticMatcher2Workflow(config)
     await workflow.run()
+
+
+async def run_workflow_from_scenario(
+    scenario_file: str,
+    model: str,
+    stream: bool = False,
+    max_items: int = MAX_ITEMS,
+    constellation: str = "p1m1m2c",
+):
+    """Run the workflow using a scenario configuration file.
+
+    Args:
+        scenario_file: Path to the scenario YAML file (e.g., "data/sbus/scenarios/overlap_only.yaml")
+        model: Model name to use (e.g., "openai_gpt4o", "zai_glm4_5_air")
+        stream: Whether to stream responses
+        max_items: Maximum number of registrations to process
+        constellation: Workflow configuration (e.g., "p1m1m2c")
+
+    Example:
+        >>> await run_workflow_from_scenario(
+        ...     scenario_file="data/sbus/scenarios/overlap_only.yaml",
+        ...     model="zai_glm4_5_air",
+        ...     max_items=10
+        ... )
+    """
+    scenario = load_scenario(scenario_file)
+
+    await run_workflow(
+        model=model,
+        stream=stream,
+        business_line="sbus",  # Extract from scenario if needed
+        registrations_file=scenario["registrations"],
+        offers_file=scenario["offers"],
+        matches_file=scenario["output"]["matches"],
+        pos_file=scenario["output"]["pos"],
+        stats_file=scenario["output"]["stats"],
+        max_items=max_items,
+        constellation=constellation,
+    )

@@ -23,10 +23,13 @@ unbound-pom-poc/
 ├── igent/
 │   ├── agents.py              # Agent creation logic
 │   ├── logging_config.py      # Logging setup
+│   ├── connectors/            # Model connectors
+│   │   └── endpoints/         # OpenAI-compatible endpoint client
 │   ├── models/                # Model client configurations
-│   │   ├── __init__.py
+│   │   ├── __init__.py        # Model registry
 │   │   ├── azure_deepseek.py  # Azure AI model client
-│   │   └── openai.py          # OpenAI model client
+│   │   ├── openai.py          # OpenAI model client
+│   │   └── zai.py             # ZhipuAI model client
 │   ├── prompts/               # Prompt loading logic
 │   ├── tools/                 # Helper tools
 │   │   ├── read_json.py
@@ -37,16 +40,36 @@ unbound-pom-poc/
 │   │   ├── file_paths.py      # File path construction
 │   │   ├── json_utils.py      # JSON list management
 │   │   ├── processing_utils.py # Pair/group processing
+│   │   ├── scenario_utils.py  # Scenario configuration loading
 │   │   └── token_utils.py     # Token counting and truncation
 │   └── workflows/             # Workflow implementations
+│       ├── workflow.py        # Base workflow class
 │       ├── p1m1c1_p2m2c2.py
 │       ├── p1m1_p2m1.py
 │       └── p1m1m2c.py
 ├── data/
-│   └── demo/                  # Sample data files
-│       ├── sbus_mock_registrations.json
-│       ├── sbus_mock_offers.json
-│       └── execution_times.csv
+│   ├── demo/                  # Sample data files
+│   ├── sbus/                  # Organized SBUS test data
+│   │   ├── registrations/    # Customer registration data
+│   │   │   ├── full_dataset.json      # 100 regs, 41 ZIPs
+│   │   │   ├── overlap_only.json      # 100 regs, 3 ZIPs
+│   │   │   └── subset_41.json         # 41 regs
+│   │   ├── offers/           # Supplier offers (modified during runs)
+│   │   │   ├── base_offers.json
+│   │   │   └── base_offers_no_aes_battery.json
+│   │   ├── capacity/         # Capacity state
+│   │   │   └── capacity_state.json
+│   │   ├── scenarios/        # Test scenario configurations (YAML)
+│   │   │   ├── full_dataset.yaml
+│   │   │   ├── overlap_only.yaml
+│   │   │   └── no_battery.yaml
+│   │   └── results/          # Workflow outputs
+│   ├── final2/               # Benchmark results (archived)
+│   └── final3/               # Benchmark results (archived)
+├── scripts/
+│   └── reset_capacity.py     # Reset supplier capacity to 0
+├── notebooks/
+│   └── demo_sbus.ipynb       # Demo notebook
 ├── README.md                  # This file
 └── requirements.txt           # Dependencies
 ```
@@ -94,9 +117,36 @@ unbound-pom-poc/
 
 ## Usage
 
-Run a workflow with sample data from the `data/demo/` directory. Input/output data formats are documented in [Sample & Data Input/Output for AI PoC](https://ichoosr.atlassian.net/wiki/spaces/FF/pages/5096472619/Sample+Data+Input+Output+for+AI+PoC) on Confluence.
+Run a workflow with sample data from the `data/demo/` directory or use scenario-based testing with organized data from `data/sbus/`. Input/output data formats are documented in [Sample & Data Input/Output for AI PoC](https://ichoosr.atlassian.net/wiki/spaces/FF/pages/5096472619/Sample+Data+Input+Output+for+AI+PoC) on Confluence.
 
-### Example: `p1m1m2c` Workflow
+### Example 1: Scenario-Based Workflow (Recommended)
+
+```python
+import asyncio
+from igent.workflows.p1m1m2c import run_workflow_from_scenario
+
+async def main():
+    await run_workflow_from_scenario(
+        scenario_file="data/sbus/scenarios/overlap_only.yaml",
+        model="zai_glm4_5_air",  # or "openai_gpt4o", "azure"
+        max_items=10
+    )
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+Available scenarios:
+- `overlap_only.yaml` - High competition (all registrations in overlapping ZIPs)
+- `full_dataset.yaml` - Diverse distribution (41 different ZIP codes)
+- `no_battery.yaml` - Product constraint (All Energy Solar missing batteries)
+
+**Before running:** Reset capacity to 0:
+```bash
+python scripts/reset_capacity.py --all
+```
+
+### Example 2: Direct File Paths
 
 ```python
 import asyncio
@@ -145,9 +195,38 @@ For details on the agent workflows, see [Agent work process](https://ichoosr.atl
 
 See [SBUS Input/Output Data for AI PoC & sample](https://ichoosr.atlassian.net/wiki/spaces/FF/pages/5124423713/SBUS+Input+Output+Data+for+AI+PoC+sample) for sample data formats.
 
+## Data Organization
+
+The `data/sbus/` directory contains organized test data with clear, descriptive names:
+
+### Registrations (Immutable)
+- **`full_dataset.json`** (100 regs, 41 ZIPs) - Diverse geographic distribution
+- **`overlap_only.json`** (100 regs, 3 ZIPs) - All in overlapping service areas
+- **`subset_41.json`** (41 regs) - Smaller subset for quick testing
+
+### Offers (Modified During Runs)
+- **`base_offers.json`** - All suppliers with batteries (capacity: 100 each)
+- **`base_offers_no_aes_battery.json`** - All Energy Solar missing batteries
+
+**Note:** Capacity tracking (`Used`, `UsedPct`) is updated in offers files during workflow execution. Always reset before a new run using `python scripts/reset_capacity.py --all`.
+
+### Scenarios (YAML Configs)
+Each scenario ties together registration data, offers, and output paths:
+- **`overlap_only.yaml`** - Tests high-competition scenarios
+- **`full_dataset.yaml`** - Tests diverse geographic distribution
+- **`no_battery.yaml`** - Tests product availability constraints
+
+### Archived Benchmark Results
+- `data/final2/` - Previous benchmark runs
+- `data/final3/` - Latest benchmark runs
+
 ## Configuration
 
-- **Model**: Set `model="openai"` or `model="azure"` in `run_workflow`.
+- **Model**: Supported models include:
+  - OpenAI: `openai_gpt4o`, `openai_gpt5`, `openai_gpt5mini`
+  - Azure: `azure`
+  - ZhipuAI: `zai_glm4_5_air`, `zai_glm4_6`
+  - VM DeepSeek: `vm_deepseek`
 - **Streaming**: Enable with `stream=True` for real-time output (Azure streaming may require additional tuning).
 - **Business Line**: Default is `"sbus"`, adjustable via `business_line`.
 - **Max Items**: Limits the number of registrations processed (default: 10).

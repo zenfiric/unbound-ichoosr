@@ -1,0 +1,15 @@
+# Scenario: All registrations in overlapping ZIP codes only
+# Description: 100 registrations concentrated in the 3 ZIP codes where all suppliers overlap
+# This tests the matcher's behavior when all registrations are in high-competition areas
+
+name: "Overlap Only Scenario"
+description: "100 registrations in 3 overlapping ZIP codes (55407, 55419, 55447)"
+
+registrations: "registrations/overlap_only.json"
+offers: "offers/base_offers.json"
+capacity: "capacity/capacity_state.json"
+
+output:
+  matches: "results/overlap_only_matches.json"
+  pos: "results/overlap_only_pos.json"
+  stats: "results/overlap_only_stats.csv"

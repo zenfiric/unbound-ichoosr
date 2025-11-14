@@ -1,0 +1,15 @@
+# Scenario: Full dataset with diverse ZIP codes
+# Description: 100 registrations spread across 41 different ZIP codes
+# This tests the matcher's behavior with diverse geographic distribution
+
+name: "Full Dataset Scenario"
+description: "100 registrations across 41 ZIP codes (diverse geographic distribution)"
+
+registrations: "registrations/full_dataset.json"
+offers: "offers/base_offers.json"
+capacity: "capacity/capacity_state.json"
+
+output:
+  matches: "results/full_dataset_matches.json"
+  pos: "results/full_dataset_pos.json"
+  stats: "results/full_dataset_stats.csv"

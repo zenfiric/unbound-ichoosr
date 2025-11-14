@@ -180,6 +180,7 @@ class EndpointsChatCompletionClient(ChatCompletionClient):
             "max_tokens",
             "stop",
             "seed",
+            "tool_choice",  # Support tool_choice parameter
         }
         return {k: v for k, v in config.items() if k in valid_args and v is not None}
 
@@ -223,9 +224,11 @@ class EndpointsChatCompletionClient(ChatCompletionClient):
         json_output: Optional[bool | type] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
+        **kwargs: Any,
     ) -> CreateResult:
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)
+        create_args.update(kwargs)  # Accept any additional kwargs (like tool_choice)
         self._validate_model_info(messages, tools, json_output, create_args)
 
         openai_messages = [msg for m in messages for msg in _to_openai_message(m)]
@@ -278,9 +281,11 @@ class EndpointsChatCompletionClient(ChatCompletionClient):
         json_output: Optional[bool | type] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
+        **kwargs: Any,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)
+        create_args.update(kwargs)  # Accept any additional kwargs (like tool_choice)
         self._validate_model_info(messages, tools, json_output, create_args)
 
         openai_messages = [msg for m in messages for msg in _to_openai_message(m)]

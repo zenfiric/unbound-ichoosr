@@ -1,0 +1,19 @@
+{
+  "suppliers": {
+    "All Energy Solar": {
+      "capacity": 100,
+      "used": 0,
+      "used_pct": 0.0
+    },
+    "iSoalr": {
+      "capacity": 100,
+      "used": 0,
+      "used_pct": 0.0
+    },
+    "TruNorthSolar": {
+      "capacity": 100,
+      "used": 0,
+      "used_pct": 0.0
+    }
+  }
+}
