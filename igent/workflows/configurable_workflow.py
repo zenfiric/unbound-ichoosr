@@ -208,7 +208,11 @@ class ConfigurableWorkflow(Workflow):
                         # For immediate access, also update in-memory cache
                         if not self._last_matches:
                             self._last_matches = []
-                        self._last_matches.append(output_data)
+                        # output_data is already a dict, not a list
+                        if isinstance(output_data, list):
+                            self._last_matches.extend(output_data)
+                        else:
+                            self._last_matches.append(output_data)
 
                     # Second matcher phase outputs to POS (batch write)
                     elif any("matcher2" in role for role in agent_roles):
