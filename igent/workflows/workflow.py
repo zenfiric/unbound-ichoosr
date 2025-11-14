@@ -54,6 +54,11 @@ class Workflow(ABC):
             logger.error("Registrations file must contain a list.")
             raise ValueError("Invalid registrations format")
 
+        # Normalize field names: RegistrationNumber -> registration_id
+        for reg in registrations:
+            if "RegistrationNumber" in reg and "registration_id" not in reg:
+                reg["registration_id"] = reg.pop("RegistrationNumber")
+
         offers = await read_json(self.config.offers_file)
         incentives = (
             await read_json(self.config.incentives_file)
@@ -96,7 +101,7 @@ class Workflow(ABC):
         logger.info("Processing %d registrations...", max_items)
 
         for i, registration in enumerate(registrations[:max_items], 1):
-            run_id = registration.get("RegistrationNumber", "unknown")
+            run_id = registration.get("registration_id", "unknown")
             logger.info("Processing registration %d/%d (ID: %s)", i, max_items, run_id)
 
             offers = await self._process_registration(
