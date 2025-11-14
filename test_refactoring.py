@@ -14,8 +14,8 @@ async def test_model_registry():
         "openai_gpt4o",
         "openai_gpt5",
         "openai_gpt5mini",
-        "zai_glm45air",
-        "zai_glm4.6",
+        "zai_glm4_5_air",
+        "zai_glm4_6",
         "azure",
         "vm_deepseek",
     ]

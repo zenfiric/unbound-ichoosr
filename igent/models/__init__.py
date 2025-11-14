@@ -9,8 +9,8 @@ MODELS = {
     "openai_gpt5mini": (_get_openai, "gpt-5-mini"),
     "azure": (_get_azure, None),
     "vm_deepseek": (_get_vm_deepseek, None),
-    "zai_glm45air": (_get_zai, "glm-4.5-air"),
-    "zai_glm4.6": (_get_zai, "glm-4.6"),
+    "zai_glm4_5_air": (_get_zai, "glm-4.5-air"),
+    "zai_glm4_6": (_get_zai, "glm-4.6"),
 }
 
 
