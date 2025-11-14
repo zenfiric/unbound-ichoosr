@@ -25,10 +25,22 @@ async def run_with_backoff(
     """Rate limit handling with exponential backoff"""
     for attempt in range(max_retries):
         try:
+            if logger:
+                logger.debug(
+                    "Starting pair.run_stream (attempt %d/%d)", attempt + 1, max_retries
+                )
+            msg_count = 0
             async for msg in pair.run_stream(
                 task=task, cancellation_token=CancellationToken()
             ):
+                msg_count += 1
+                if logger and msg_count % 5 == 0:
+                    logger.debug("Received %d messages so far...", msg_count)
                 yield msg
+            if logger:
+                logger.debug(
+                    "Completed pair.run_stream, received %d total messages", msg_count
+                )
             break
         except RateLimitError as e:
             if attempt < max_retries - 1:
@@ -53,6 +65,9 @@ async def process_pair(
         message = truncate_message(message, TOKEN_LIMIT - 1000)
 
     logger.info("Running %s for registration %s", pair_name, run_id)
+    logger.debug(
+        "Starting agent conversation with message length: %d chars", len(message)
+    )
     success = False
     matcher_output = ""
     json_output = None
@@ -61,6 +76,7 @@ async def process_pair(
     matcher2_output = ""
     json_outputs = {"matches": None, "pos": None} if is_group else None
 
+    logger.debug("Calling run_with_backoff for %s", pair_name)
     async for msg in run_with_backoff(
         pair, [TextMessage(content=message, source="user")], logger=logger
     ):

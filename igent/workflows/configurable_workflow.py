@@ -64,8 +64,14 @@ class ConfigurableWorkflow(Workflow):
     def _load_constellation_config(self) -> ConstellationConfig:
         """Load constellation configuration from YAML file."""
         # Look for config file in config/constellations/
+        # Use absolute path relative to this file's location
+        current_file = Path(__file__).resolve()
+        project_root = current_file.parent.parent.parent  # Go up to project root
         config_path = (
-            Path("config/constellations") / f"{self.config.constellation}.yaml"
+            project_root
+            / "config"
+            / "constellations"
+            / f"{self.config.constellation}.yaml"
         )
 
         if not config_path.exists():
@@ -152,6 +158,9 @@ class ConfigurableWorkflow(Workflow):
             )
 
             # Execute phase
+            logger.debug(
+                f"About to execute {phase.name} with {len(phase.agents)} agents"
+            )
             start_time = time.time()
             result = await process_pair(
                 pair=group,
@@ -161,6 +170,7 @@ class ConfigurableWorkflow(Workflow):
                 logger=logger,
             )
             phase_time = time.time() - start_time
+            logger.debug(f"Completed {phase.name}, took {phase_time:.3f}s")
 
             # Store timing with column name from config
             timing_key = self.constellation.timing_columns[phase_idx]

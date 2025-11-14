@@ -3,8 +3,8 @@ import time
 from igent.agents import get_agents
 from igent.logging_config import logger
 from igent.prompts import load_prompts
+from igent.tools.capacity_tracker import update_supplier_capacity
 from igent.tools.read_json import read_json
-from igent.tools.update_supplier_capacity import update_supplier_capacity
 from igent.utils import (
     EXECUTION_TIMES_CSV,
     MAX_ITEMS,
