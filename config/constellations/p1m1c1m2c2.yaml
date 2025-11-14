@@ -1,0 +1,28 @@
+# Constellation: p1m1c1m2c2
+# Description: Single group with all 4 agents (Matcher1, Critic1, Matcher2, Critic2)
+# Use case: Full workflow with critics for both phases in single conversation
+
+name: "p1m1c1m2c2"
+description: "Single group with all 4 agents"
+
+phases:
+  - name: "single_group"
+    description: "All agents collaborate in one conversation"
+    agents:
+      - role: "matcher1"
+        prompt_key: "a_matcher"
+      - role: "critic1"
+        prompt_key: "a_critic"
+      - role: "matcher2"
+        prompt_key: "b_matcher"
+      - role: "critic2"
+        prompt_key: "b_critic"
+    capacity_update_before: false
+    capacity_update_after: true
+
+prompts:
+  variant: null  # Use default prompts
+
+timing:
+  columns:
+    - "group_time_seconds"

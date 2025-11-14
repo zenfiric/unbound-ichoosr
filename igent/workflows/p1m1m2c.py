@@ -163,23 +163,29 @@ async def run_workflow_from_scenario(
 ):
     """Run the workflow using a scenario configuration file.
 
+    This is a convenience function that combines scenario-based data management
+    with constellation-based workflow configuration.
+
     Args:
         scenario_file: Path to the scenario YAML file (e.g., "data/sbus/scenarios/overlap_only.yaml")
         model: Model name to use (e.g., "openai_gpt4o", "zai_glm4_5_air")
         stream: Whether to stream responses
         max_items: Maximum number of registrations to process
-        constellation: Workflow configuration (e.g., "p1m1m2c")
+        constellation: Workflow constellation (e.g., "p1m1m2c", "p1m1c1m2c2")
 
     Example:
         >>> await run_workflow_from_scenario(
         ...     scenario_file="data/sbus/scenarios/overlap_only.yaml",
         ...     model="zai_glm4_5_air",
+        ...     constellation="p1m1m2c",
         ...     max_items=10
         ... )
     """
+    from igent.workflows import run_workflow as unified_run_workflow
+
     scenario = load_scenario(scenario_file)
 
-    await run_workflow(
+    await unified_run_workflow(
         model=model,
         stream=stream,
         business_line="sbus",  # Extract from scenario if needed

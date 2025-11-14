@@ -1,0 +1,33 @@
+# Constellation: p1m1m2c
+# Description: Matcher1 with Critic in Phase 1, then Matcher2 solo in Phase 2
+# Use case: Standard workflow with validation for matching, no validation for enrichment
+
+name: "p1m1m2c"
+description: "Matcher1 with Critic, then Matcher2 solo"
+
+phases:
+  - name: "phase1"
+    description: "Match registrations to suppliers with critic validation"
+    agents:
+      - role: "matcher1"
+        prompt_key: "a_matcher"
+      - role: "critic"
+        prompt_key: "critic"
+    capacity_update_before: false
+    capacity_update_after: true
+
+  - name: "phase2"
+    description: "Enrich matches with pricing and subsidies"
+    agents:
+      - role: "matcher2"
+        prompt_key: "b_matcher"
+    capacity_update_before: false
+    capacity_update_after: false
+
+prompts:
+  variant: "one_critic"
+
+timing:
+  columns:
+    - "matcher1_critic_time_seconds"
+    - "matcher2_time_seconds"

@@ -1,0 +1,31 @@
+# Constellation: p1m1_p2m2
+# Description: Two matchers, no critics
+# Use case: Fast workflow without validation overhead
+
+name: "p1m1_p2m2"
+description: "Two matchers, no critics"
+
+phases:
+  - name: "phase1"
+    description: "Match registrations to suppliers without validation"
+    agents:
+      - role: "matcher1"
+        prompt_key: "a_matcher"
+    capacity_update_before: false
+    capacity_update_after: true
+
+  - name: "phase2"
+    description: "Enrich matches with pricing and subsidies without validation"
+    agents:
+      - role: "matcher2"
+        prompt_key: "b_matcher"
+    capacity_update_before: false
+    capacity_update_after: false
+
+prompts:
+  variant: "no_critic"
+
+timing:
+  columns:
+    - "matcher1_time_seconds"
+    - "matcher2_time_seconds"

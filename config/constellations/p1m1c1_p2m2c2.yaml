@@ -1,0 +1,35 @@
+# Constellation: p1m1c1_p2m2c2
+# Description: Two sequential pairs, each with matcher and critic
+# Use case: Full validation for both matching and enrichment phases
+
+name: "p1m1c1_p2m2c2"
+description: "Two sequential pairs with critics"
+
+phases:
+  - name: "phase1"
+    description: "Match registrations to suppliers with critic validation"
+    agents:
+      - role: "matcher1"
+        prompt_key: "a_matcher"
+      - role: "critic1"
+        prompt_key: "a_critic"
+    capacity_update_before: false
+    capacity_update_after: true
+
+  - name: "phase2"
+    description: "Enrich matches with pricing and subsidies with critic validation"
+    agents:
+      - role: "matcher2"
+        prompt_key: "b_matcher"
+      - role: "critic2"
+        prompt_key: "b_critic"
+    capacity_update_before: false
+    capacity_update_after: false
+
+prompts:
+  variant: null  # Use default prompts
+
+timing:
+  columns:
+    - "pair1_time_seconds"
+    - "pair2_time_seconds"
