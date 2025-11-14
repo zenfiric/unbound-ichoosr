@@ -5,7 +5,6 @@ from typing import Literal
 
 from igent.logging_config import logger
 from igent.prompts import load_prompts
-from igent.tools.capacity_tracker import update_supplier_capacity
 from igent.tools.read_json import read_json
 from igent.utils import EXECUTION_TIMES_CSV, MAX_ITEMS, init_csv
 
@@ -99,6 +98,7 @@ class Workflow(ABC):
         self.stats_file = self._construct_filepath(config.stats_file)
         self.matches_file = self._construct_filepath(config.matches_file)
         self.pos_file = self._construct_filepath(config.pos_file)
+        self._capacity_cache: dict[str, dict] | None = None  # Cache capacity data
 
     def _construct_filepath(self, filename: str | Path) -> Path:
         """Construct a filepath with configuration, business line, and model prefix."""
@@ -109,8 +109,24 @@ class Workflow(ABC):
         )
 
     async def _load_data(self) -> tuple[list[dict], list[dict], list[dict] | None]:
-        """Load registrations, offers, and incentives data."""
-        registrations = await read_json(self.config.registrations_file)
+        """Load registrations, offers, and incentives data in parallel."""
+        import asyncio
+
+        # Load files in parallel
+        tasks = [
+            read_json(self.config.registrations_file),
+            read_json(self.config.offers_file),
+        ]
+
+        if self.config.incentives_file:
+            tasks.append(read_json(self.config.incentives_file))
+
+        results = await asyncio.gather(*tasks)
+
+        registrations = results[0]
+        offers = results[1]
+        incentives = results[2] if len(results) > 2 else None
+
         if not isinstance(registrations, list):
             logger.error("Registrations file must contain a list.")
             raise ValueError("Invalid registrations format")
@@ -120,12 +136,6 @@ class Workflow(ABC):
             if "RegistrationNumber" in reg and "registration_id" not in reg:
                 reg["registration_id"] = reg.pop("RegistrationNumber")
 
-        offers = await read_json(self.config.offers_file)
-        incentives = (
-            await read_json(self.config.incentives_file)
-            if self.config.incentives_file
-            else None
-        )
         return registrations, offers, incentives
 
     async def _initialize(self):
@@ -184,18 +194,77 @@ class Workflow(ABC):
         """Process a single registration."""
         pass
 
+    async def _get_capacity_data(self) -> dict[str, dict]:
+        """Get cached capacity data, loading if necessary."""
+        if self._capacity_cache is None:
+            from igent.tools.capacity_tracker import initialize_capacity_file
+
+            self._capacity_cache = await initialize_capacity_file(
+                self.config.offers_file, self.config.capacity_file
+            )
+            logger.debug("Loaded capacity data into cache")
+        return self._capacity_cache
+
     async def _update_capacity(
         self, matches: list[dict], run_id: str
     ) -> list[dict] | None:
         """Update supplier capacity and reload offers."""
         logger.debug("Current match for update: %s", matches)
         try:
-            result = await update_supplier_capacity(
-                matches, self.config.offers_file, self.config.capacity_file
+            # Get cached capacity data
+            capacity_data = await self._get_capacity_data()
+
+            # Process the latest match
+            match = matches[-1]
+            supplier_id = match.get("supplier_id") or match.get("SupplierID")
+
+            if not supplier_id:
+                raise ValueError(f"Match missing supplier_id: {match}")
+
+            if supplier_id not in capacity_data:
+                raise ValueError(f"SupplierID {supplier_id} not found in capacity")
+
+            supplier_capacity = capacity_data[supplier_id]
+            current_used = supplier_capacity["Used"]
+            capacity = supplier_capacity["Capacity"]
+
+            # Increment Used by 1
+            new_used = current_used + 1
+            if new_used > capacity:
+                raise ValueError(
+                    f"Supplier {supplier_id} capacity exceeded: {new_used} > {capacity}"
+                )
+
+            supplier_capacity["Used"] = new_used
+            supplier_capacity["UsedPct"] = (
+                round(new_used / capacity, 2) if capacity > 0 else 0.0
             )
-            logger.info("Capacity update: %s", result)
+
+            # Write updated capacity to file (async, but don't await - fire and forget)
+            import asyncio
+            import json
+            from pathlib import Path
+
+            import aiofiles
+
+            capacity_path = Path(self.config.capacity_file)
+
+            async def write_capacity():
+                async with aiofiles.open(capacity_path, "w") as f:
+                    await f.write(json.dumps(capacity_data, indent=2))
+
+            asyncio.create_task(write_capacity())  # Fire and forget
+
+            logger.info(
+                "Updated capacity for %s: %d/%d (%.0f%%)",
+                supplier_id,
+                new_used,
+                capacity,
+                supplier_capacity["UsedPct"] * 100,
+            )
+
+            # Reload offers (unchanged, but needed for workflow)
             offers = await read_json(self.config.offers_file)
-            logger.debug("Updated offers: %s", offers)
             return offers
         except ValueError as e:
             logger.error("Error updating capacity for registration %s: %s", run_id, e)

@@ -1,6 +1,5 @@
 """Configurable workflow that supports multiple constellation patterns via YAML configuration."""
 
-import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -10,6 +9,7 @@ from igent.agents import get_agents
 from igent.logging_config import logger
 from igent.tools.read_json import read_json
 from igent.utils import process_pair, update_json_list, update_runtime
+from igent.utils.timing import Timer
 
 from .workflow import Workflow, WorkflowConfig
 
@@ -127,55 +127,67 @@ class ConfigurableWorkflow(Workflow):
     ) -> list[dict] | None:
         """Process registration through all configured phases."""
         timing_data = {}
+        timer = Timer(f"registration_{run_id}")
 
         for phase_idx, phase in enumerate(self.constellation.phases):
             logger.info(
                 f"Starting {phase.name} for registration {run_id}: {phase.description}"
             )
 
-            # Update capacity BEFORE phase if configured
-            if phase.capacity_update_before and self._last_matches:
-                offers = await self._update_capacity(self._last_matches, run_id)
-                if offers is None:
-                    return None
+            with timer.section(f"{phase.name}_total"):
+                # Update capacity BEFORE phase if configured
+                if phase.capacity_update_before and self._last_matches:
+                    with timer.section(f"{phase.name}_capacity_update_before"):
+                        offers = await self._update_capacity(self._last_matches, run_id)
+                        if offers is None:
+                            return None
 
-            # Build prompts dict for this phase
-            prompts_dict = {
-                agent["role"]: self.prompts[agent["prompt_key"]]
-                for agent in phase.agents
-            }
+                # Build prompts dict for this phase
+                with timer.section(f"{phase.name}_setup"):
+                    prompts_dict = {
+                        agent["role"]: self.prompts[agent["prompt_key"]]
+                        for agent in phase.agents
+                    }
 
-            # Create agent group for this phase
-            group = await get_agents(
-                model=self.config.model,
-                stream=self.config.stream,
-                prompts=prompts_dict,
-            )
+                    # Create agent group for this phase
+                    group = await get_agents(
+                        model=self.config.model,
+                        stream=self.config.stream,
+                        prompts=prompts_dict,
+                    )
 
-            # Build message based on phase and agents
-            message = self._build_phase_message(
-                phase, registration, offers, incentives, run_id
-            )
+                    # Build message based on phase and agents
+                    message = self._build_phase_message(
+                        phase, registration, offers, incentives, run_id
+                    )
 
-            # Execute phase
-            logger.debug(
-                f"About to execute {phase.name} with {len(phase.agents)} agents"
-            )
-            start_time = time.time()
-            result = await process_pair(
-                pair=group,
-                message=message,
-                run_id=run_id,
-                pair_name=phase.name,
-                logger=logger,
-            )
-            phase_time = time.time() - start_time
+                # Execute phase (AI conversation)
+                logger.debug(
+                    f"About to execute {phase.name} with {len(phase.agents)} agents"
+                )
+                with timer.section(f"{phase.name}_agent_conversation"):
+                    result = await process_pair(
+                        pair=group,
+                        message=message,
+                        run_id=run_id,
+                        pair_name=phase.name,
+                        logger=logger,
+                    )
+
+            phase_time = timer.timings.get(f"{phase.name}_total", 0)
             logger.debug(f"Completed {phase.name}, took {phase_time:.3f}s")
 
             # Store timing with column name from config
             timing_key = self.constellation.timing_columns[phase_idx]
             timing_data[timing_key.replace("_seconds", "")] = phase_time
-            logger.info(f"{phase.name} execution time: {phase_time:.3f} seconds")
+
+            # Also store detailed breakdown
+            agent_conv_time = timer.timings.get(f"{phase.name}_agent_conversation", 0)
+            timing_data[f"{phase.name}_agent_conversation"] = agent_conv_time
+
+            logger.info(
+                f"{phase.name} execution time: {phase_time:.3f}s (AI: {agent_conv_time:.3f}s)"
+            )
 
             # Check phase success
             if not result or not result["success"]:
@@ -185,26 +197,42 @@ class ConfigurableWorkflow(Workflow):
             # Handle phase output
             output_data = result.get("json_output")
             if output_data:
-                # Determine output destination based on agent roles
-                agent_roles = [a["role"] for a in phase.agents]
+                with timer.section(f"{phase.name}_file_write"):
+                    # Determine output destination based on agent roles
+                    agent_roles = [a["role"] for a in phase.agents]
 
-                # First matcher phase outputs to matches
-                if any("matcher1" in role for role in agent_roles):
-                    update_json_list(self.matches_file, output_data, logger)
-                    self._last_matches = await read_json(self.matches_file)
+                    # First matcher phase outputs to matches
+                    if any("matcher1" in role for role in agent_roles):
+                        update_json_list(self.matches_file, output_data, logger)
+                        self._last_matches = await read_json(self.matches_file)
 
-                # Second matcher phase outputs to POS
-                elif any("matcher2" in role for role in agent_roles):
-                    update_json_list(self.pos_file, output_data, logger)
+                    # Second matcher phase outputs to POS
+                    elif any("matcher2" in role for role in agent_roles):
+                        update_json_list(self.pos_file, output_data, logger)
+
+                # Store file write timing
+                file_write_time = timer.timings.get(f"{phase.name}_file_write", 0)
+                timing_data[f"{phase.name}_file_write"] = file_write_time
 
             # Update capacity AFTER phase if configured
             if phase.capacity_update_after and self._last_matches:
-                offers = await self._update_capacity(self._last_matches, run_id)
-                if offers is None:
-                    return None
+                with timer.section(f"{phase.name}_capacity_update_after"):
+                    offers = await self._update_capacity(self._last_matches, run_id)
+                    if offers is None:
+                        return None
+
+                # Store capacity update timing
+                cap_update_time = timer.timings.get(
+                    f"{phase.name}_capacity_update_after", 0
+                )
+                timing_data[f"{phase.name}_capacity_update"] = cap_update_time
 
         # Record timing for all phases
         update_runtime(run_id, filepath=self.stats_file, **timing_data)
+
+        # Log detailed timing summary
+        logger.debug(timer.format_summary())
+
         return offers
 
     def _build_phase_message(
