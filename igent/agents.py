@@ -12,13 +12,23 @@ load_dotenv(override=True)
 
 
 async def get_agents(
-    model: str, stream: bool = False, prompts: dict = None
+    model: str,
+    stream: bool = False,
+    prompts: dict = None,
+    enable_thinking: bool = False,
 ) -> RoundRobinGroupChat:
-    """Initialize and configure a group chat with agents based on provided prompts."""
+    """Initialize and configure a group chat with agents based on provided prompts.
+
+    Args:
+        model: Model identifier (e.g., 'zai_glm4_6')
+        stream: Enable streaming responses
+        prompts: Dictionary mapping agent names to their system prompts
+        enable_thinking: For GLM models, enable chain-of-thought reasoning (default: False)
+    """
     if not prompts or not isinstance(prompts, dict):
         raise ValueError("Prompts must be a non-empty dictionary with agent prompts")
 
-    model_client = await get_model_client(model)
+    model_client = await get_model_client(model, enable_thinking=enable_thinking)
 
     agents = []
     has_critic = False

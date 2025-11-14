@@ -43,6 +43,7 @@ class WorkflowConfig:
     # Execution parameters
     max_items: int = MAX_ITEMS
     stream: bool = False
+    enable_thinking: bool = False  # For GLM models: enable chain-of-thought reasoning
 
     def __post_init__(self):
         """Apply smart defaults for file paths if data_dir and scenario are provided."""

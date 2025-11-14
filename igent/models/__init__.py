@@ -16,12 +16,15 @@ MODELS = {
 }
 
 
-async def get_model_client(model: str, api_key: str | None = None) -> Any:
+async def get_model_client(
+    model: str, api_key: str | None = None, enable_thinking: bool = False
+) -> Any:
     """Get a model client instance for the specified model.
 
     Args:
         model: Model identifier (e.g., 'openai_gpt4o', 'zai_glm4_6')
         api_key: Optional API key override
+        enable_thinking: For GLM models, enable chain-of-thought reasoning (default: False)
 
     Returns:
         Model client instance
@@ -33,8 +36,17 @@ async def get_model_client(model: str, api_key: str | None = None) -> Any:
         raise ValueError(f"Unsupported model: {model}")
 
     func, model_name = MODELS[model]
+
+    # Check if this is a ZAI model that supports enable_thinking
+    is_zai_model = model.startswith("zai_")
+
     if model_name:
-        model_client = await func(api_key, model=model_name)
+        if is_zai_model:
+            model_client = await func(
+                api_key, model=model_name, enable_thinking=enable_thinking
+            )
+        else:
+            model_client = await func(api_key, model=model_name)
     else:
         model_client = await func(api_key)
     return model_client

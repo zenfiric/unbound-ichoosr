@@ -155,6 +155,7 @@ class ConfigurableWorkflow(Workflow):
                         model=self.config.model,
                         stream=self.config.stream,
                         prompts=prompts_dict,
+                        enable_thinking=self.config.enable_thinking,
                     )
 
                     # Build message based on phase and agents
