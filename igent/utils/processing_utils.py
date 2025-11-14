@@ -17,8 +17,11 @@ from .token_utils import (  # Import from token_utils
 
 
 async def run_with_backoff(
-    pair, task: list[TextMessage], max_retries: int = 3, logger: Logger | None = None
-):
+    pair,
+    task: list[TextMessage],
+    max_retries: int = 3,
+    logger: Logger | None = None,
+) -> Any:
     """Rate limit handling with exponential backoff"""
     for attempt in range(max_retries):
         try:
@@ -135,7 +138,9 @@ async def process_pair(
 
 
 # === Helper Function ===
-def _extract_json_before_approve(output: str, logger, source_name: str):
+def _extract_json_before_approve(
+    output: str, logger: Logger, source_name: str
+) -> dict | list | None:
     """
     Extracts JSON from output that may contain:
       - ```json ... ```

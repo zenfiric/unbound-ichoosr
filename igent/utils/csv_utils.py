@@ -5,7 +5,9 @@ import pandas as pd
 EXECUTION_TIMES_CSV = "execution_times.csv"
 
 
-def init_csv(filepath: str = EXECUTION_TIMES_CSV, columns: list = None):
+def init_csv(
+    filepath: str = EXECUTION_TIMES_CSV, columns: list[str] | None = None
+) -> None:
     """Initialize CSV file with headers if it doesn't exist."""
     if not os.path.exists(filepath):
         if columns is None:

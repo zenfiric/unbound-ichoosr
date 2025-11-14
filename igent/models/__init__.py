@@ -1,3 +1,5 @@
+from typing import Any
+
 from .azure_deepseek import _get_azure
 from .openai import _get_openai
 from .vm_deepseek import _get_vm_deepseek
@@ -14,7 +16,19 @@ MODELS = {
 }
 
 
-async def get_model_client(model: str, api_key: str | None = None):
+async def get_model_client(model: str, api_key: str | None = None) -> Any:
+    """Get a model client instance for the specified model.
+
+    Args:
+        model: Model identifier (e.g., 'openai_gpt4o', 'zai_glm4_6')
+        api_key: Optional API key override
+
+    Returns:
+        Model client instance
+
+    Raises:
+        ValueError: If model is not registered
+    """
     if model not in MODELS:
         raise ValueError(f"Unsupported model: {model}")
 

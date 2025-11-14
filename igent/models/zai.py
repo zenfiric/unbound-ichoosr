@@ -5,7 +5,10 @@ from autogen_core.models import ModelInfo
 from igent.connectors.endpoints import EndpointsChatCompletionClient
 
 
-async def _get_zai(api_key: str | None = None, model: str = "glm-4.5-air"):
+async def _get_zai(
+    api_key: str | None = None, model: str = "glm-4.5-air"
+) -> EndpointsChatCompletionClient:
+    """Create ZhipuAI (Z.AI) chat completion client."""
     API_KEY = api_key or os.getenv("ZAI_API_KEY")
     model_client = EndpointsChatCompletionClient(
         endpoint="https://api.z.ai/api/paas/v4/",
