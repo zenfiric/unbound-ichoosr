@@ -5,7 +5,7 @@ from logging import Logger
 from typing import Any
 
 from autogen_agentchat.base import TaskResult
-from autogen_agentchat.messages import TextMessage
+from autogen_agentchat.messages import StructuredMessage, TextMessage
 from autogen_core import CancellationToken
 from openai import RateLimitError
 
@@ -80,7 +80,31 @@ async def process_pair(
     async for msg in run_with_backoff(
         pair, [TextMessage(content=message, source="user")], logger=logger
     ):
-        if isinstance(msg, TextMessage):
+        if isinstance(msg, StructuredMessage):
+            # Handle structured output from agents with output_content_type
+            if "matcher" in msg.source.lower():
+                # Extract the root list from the Pydantic RootModel
+                structured_data = (
+                    msg.content.root
+                    if hasattr(msg.content, "root")
+                    else msg.content.model_dump()
+                )
+                logger.info("matcher (structured): %s", structured_data)
+
+                if is_group and "matcher1" in msg.source.lower():
+                    json_outputs["matches"] = structured_data
+                    success = json_outputs["matches"] is not None
+                elif is_group and "matcher2" in msg.source.lower():
+                    json_outputs["pos"] = structured_data
+                    if json_outputs["pos"] is not None:
+                        success = True
+                else:
+                    json_output = structured_data
+                    if json_output is not None:
+                        success = True
+            else:
+                logger.info("%s (structured): %s", msg.source, msg.content)
+        elif isinstance(msg, TextMessage):
             if msg.source == "user":
                 logger.debug("User: %s", msg.content[:100])
             elif "matcher" in msg.source.lower():

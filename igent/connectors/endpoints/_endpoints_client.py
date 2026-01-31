@@ -18,6 +18,7 @@ from autogen_core.models import (
 from autogen_core.tools import Tool, ToolSchema
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletion
+from pydantic import BaseModel
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 
@@ -209,9 +210,22 @@ class EndpointsChatCompletionClient(ChatCompletionClient):
         if json_output is not None:
             if not self.model_info["json_output"] and json_output is True:
                 raise ValueError("Model does not support JSON output")
-            if isinstance(json_output, type):
-                raise ValueError("Structured output is not supported")
-            if json_output and "response_format" not in create_args:
+            if isinstance(json_output, type) and issubclass(json_output, BaseModel):
+                # Support Pydantic models for structured output
+                if not self.model_info["structured_output"]:
+                    raise ValueError("Model does not support structured output")
+                if "response_format" not in create_args:
+                    # Convert Pydantic model to JSON schema format
+                    schema = json_output.model_json_schema()
+                    create_args["response_format"] = {
+                        "type": "json_schema",
+                        "json_schema": {
+                            "name": json_output.__name__,
+                            "schema": schema,
+                            "strict": True,
+                        },
+                    }
+            elif json_output and "response_format" not in create_args:
                 create_args["response_format"] = {"type": "json_object"}
         if not self.model_info["function_calling"] and tools:
             raise ValueError("Model does not support function calling")

@@ -45,6 +45,18 @@ async def get_agents(
             f"say 'APPROVE' to indicate completion."
         )
 
+        # Determine output format based on agent role
+        # NOTE: Structured output is disabled for now as Z.AI may not support json_schema format
+        # When enabled, this ensures type-safe JSON output conforming to Pydantic schemas
+        output_format = None
+        # if "matcher1" in agent_name.lower():
+        #     output_format = MatcherOutput
+        # elif "matcher2" in agent_name.lower():
+        #     output_format = EnrichedMatchOutput
+        # elif "matcher" in agent_name.lower() and "1" not in agent_name.lower():
+        #     # Generic matcher (phase A in non-split configs)
+        #     output_format = MatcherOutput
+
         agent = AssistantAgent(
             name=agent_name,
             model_client=model_client,
@@ -52,6 +64,7 @@ async def get_agents(
             tools=[fetch_incentives_tool],
             model_client_stream=stream,
             reflect_on_tool_use=True,
+            output_content_type=output_format,
         )
         agents.append(agent)
         if "critic" in agent_name.lower():
@@ -68,16 +81,16 @@ async def get_agents(
             terminations = (
                 TextMentionTermination("APPROVE", sources=["critic1"])
                 & TextMentionTermination("APPROVE", sources=["critic2"])
-                & MaxMessageTermination(max_messages=10)
+                & MaxMessageTermination(max_messages=6)
             )
         elif "critic1" in prompts:
             terminations = TextMentionTermination(
                 "APPROVE", sources=["critic1"]
-            ) | MaxMessageTermination(max_messages=10)
+            ) | MaxMessageTermination(max_messages=6)
         elif "critic2" in prompts:
             terminations = TextMentionTermination(
                 "APPROVE", sources=["critic2"]
-            ) | MaxMessageTermination(max_messages=10)
+            ) | MaxMessageTermination(max_messages=6)
         else:
             # Single critic (e.g., "critic" for one_critic variant)
             critic_source = next(
@@ -85,19 +98,19 @@ async def get_agents(
             )
             terminations = TextMentionTermination(
                 "APPROVE", sources=[critic_source]
-            ) | MaxMessageTermination(max_messages=10)
+            ) | MaxMessageTermination(max_messages=6)
     else:
         # No critics: terminate when all matchers say "APPROVE"
         if len(matcher_sources) > 1:
             terminations = (
                 TextMentionTermination("APPROVE", sources=[matcher_sources[0]])
                 & TextMentionTermination("APPROVE", sources=[matcher_sources[1]])
-                & MaxMessageTermination(max_messages=10)
+                & MaxMessageTermination(max_messages=6)
             )
         else:
             terminations = TextMentionTermination(
                 "APPROVE", sources=matcher_sources
-            ) | MaxMessageTermination(max_messages=10)
+            ) | MaxMessageTermination(max_messages=6)
 
     group_chat = RoundRobinGroupChat(
         agents,

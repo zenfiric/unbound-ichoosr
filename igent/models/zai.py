@@ -41,9 +41,9 @@ async def _get_zai(
         model_info=ModelInfo(
             vision=False,
             function_calling=True,
-            json_output=False,
+            json_output=True,
             family="gpt-4o",
-            structured_output=False,
+            structured_output=True,
         ),
         create_args=extra_args,
     )
